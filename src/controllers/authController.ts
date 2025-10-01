@@ -6,6 +6,7 @@ import { sendResponse } from "../utils/sendResponse";
 import { validateLoginUser, validateNewPassword } from "../validations/authValidation";
 import { API_STATUS } from "../constants/apiStatus";
 import { AuthRequest } from "../middleware/type";
+import { LOGIN_ERROR_CODE } from "../constants/errorCode";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -22,6 +23,7 @@ export const login = async (req: Request, res: Response) => {
       return sendResponse({
         res,
         statusCode: 401,
+        code: LOGIN_ERROR_CODE.INVALID_REQUEST,
         message: "Invalid credentials",
       });
     }
@@ -34,6 +36,7 @@ export const login = async (req: Request, res: Response) => {
       return sendResponse({
         res,
         statusCode: 401,
+        code: LOGIN_ERROR_CODE.INVALID_REQUEST,
         message: "Invalid credentials",
       });
     }
@@ -61,6 +64,7 @@ export const login = async (req: Request, res: Response) => {
     return sendResponse({
       res,
       statusCode: 500,
+      code: LOGIN_ERROR_CODE.INTERNAL_SERVER_ERROR,
       message: "Internal server error",
     });
   }
