@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import User from "../models/user.model";
+import { API_STATUS } from "../constants/apiStatus";
+import User from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
 import { validateLoginUser } from "../validations/authValidation";
-import { API_STATUS } from "../constants/apiStatus";
 
 export const login = async (req: Request, res: Response) => {
   try {
