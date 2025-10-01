@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/type";
-import User from "../models/user.model";
+import User from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
 import { ME_ERROR_CODE } from "../constants/errorCode";
 
