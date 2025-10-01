@@ -1,10 +1,7 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction, Handler } from "express";
 import { sendResponse } from "../utils/sendResponse";
-
-export interface AuthRequest extends Request {
-  userId: string;
-}
+import { AuthRequest } from "./type";
 
 export const requireAuth: Handler = (
   req: Request,

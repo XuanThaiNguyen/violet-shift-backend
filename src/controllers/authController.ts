@@ -3,8 +3,9 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model";
 import { sendResponse } from "../utils/sendResponse";
-import { validateLoginUser } from "../validations/authValidation";
+import { validateLoginUser, validateNewPassword } from "../validations/authValidation";
 import { API_STATUS } from "../constants/apiStatus";
+import { AuthRequest } from "../middleware/type";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -55,6 +56,42 @@ export const login = async (req: Request, res: Response) => {
         token,
         user: userInfo,
       },
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const newPassword = async (req: Request, res: Response) => {
+  try {
+    const { error, value: passwordData } = validateNewPassword(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+      });
+    }
+
+    const user = await User.findById((req as AuthRequest).userId);
+    if (!user)
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+      });
+
+    user.password = await bcrypt.hash(passwordData.password, 10);
+    await user.save();
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
     });
   } catch (error) {
     return sendResponse({

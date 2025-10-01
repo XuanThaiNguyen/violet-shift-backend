@@ -2,6 +2,7 @@ import { API_STATUS } from "../constants/apiStatus";
 
 interface ISendResponse<T = any, M = any> {
   res: any;
+  code?: number;
   statusCode?: number;
   status?: keyof typeof API_STATUS;
   message?: string;
@@ -11,6 +12,7 @@ interface ISendResponse<T = any, M = any> {
 
 export const sendResponse = <T = any, M = any>({
   res,
+  code = 200,
   statusCode = 200,
   status = API_STATUS.OK as keyof typeof API_STATUS,
   message = "",
@@ -22,8 +24,10 @@ export const sendResponse = <T = any, M = any>({
     status?: keyof typeof API_STATUS;
     data?: T;
     meta?: M;
+    code?: number;
   } = {
     message,
+    code,
   };
 
   if (status) {
