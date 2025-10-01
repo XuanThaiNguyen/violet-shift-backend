@@ -8,7 +8,7 @@ import { API_STATUS } from "../constants/apiStatus";
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { error } = validateLoginUser(req.body);
+    const { error, value: userData } = validateLoginUser(req.body);
     if (error)
       return sendResponse({
         res,
@@ -16,7 +16,7 @@ export const login = async (req: Request, res: Response) => {
         message: error.details[0].message,
       });
 
-    const user = await User.findOne({ email: req.body.email });
+    const user = await User.findOne({ email: userData.email });
     if (!user) {
       return sendResponse({
         res,

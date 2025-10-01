@@ -1,13 +1,13 @@
 import jwt from "jsonwebtoken";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction, Handler } from "express";
 import { sendResponse } from "../utils/sendResponse";
 
 export interface AuthRequest extends Request {
   userId: string;
 }
 
-export const requireAuth = (
-  req: AuthRequest,
+export const requireAuth: Handler = (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -21,7 +21,7 @@ export const requireAuth = (
     if (!secret) return res.status(500).json({ message: "JWT secret missing" });
 
     const payload = jwt.verify(token, secret) as { userId: string };
-    req.userId = payload.userId;
+    (req as AuthRequest).userId = payload.userId;
     next();
   } catch (error) {
     return sendResponse({

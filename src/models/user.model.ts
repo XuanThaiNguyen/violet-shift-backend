@@ -38,6 +38,7 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     phoneNumber: {
       type: String,
       trim: true,
+      index: true,
     },
     email: {
       type: String,
@@ -48,7 +49,6 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: true,
     },
   },
   {

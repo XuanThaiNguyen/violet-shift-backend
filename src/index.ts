@@ -1,19 +1,33 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import helmet from "helmet";
 import morgan from "morgan";
 import { connectDB } from "./config/database";
-import authRoutes from "./routes/authRoute";
+import { route } from "./routes";
 
 dotenv.config();
 const app = express();
-app.use(cors());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Security
+app.use(helmet({
+  xPoweredBy: false,
+}));
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  // allowedHeaders: ["Content-Type", "Authorization"],
+}));
+
+// Logger
 app.use(morgan("dev"));
 
 const port = 3000;
 
-app.use("/api/auth", authRoutes);
+route(app);
 
 app.listen(port, () => {
   connectDB();
