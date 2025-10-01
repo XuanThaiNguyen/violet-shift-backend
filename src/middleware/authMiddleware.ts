@@ -2,6 +2,8 @@ import type { Handler, NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { sendResponse } from "../utils/sendResponse";
 import { AuthRequest } from "./type";
+import User from "../models/userModel";
+import { AUTH_ERROR_CODE } from "../constants/errorCode";
 
 export const requireAuth: Handler = (
   req: Request,
@@ -14,7 +16,7 @@ export const requireAuth: Handler = (
       return sendResponse({
         res,
         statusCode: 401,
-        message: "Unauthorized",
+        message: "Unauthenticated",
       });
     }
     const token = header.slice("Bearer ".length);
@@ -36,4 +38,19 @@ export const requireAuth: Handler = (
       message: "Invalid token",
     });
   }
+};
+
+export const isInRoles = (roles: string[]): Handler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findById((req as AuthRequest).userId);
+    if (!user || !roles.includes(user?.role.toString())) {
+      return sendResponse({
+        res,
+        statusCode: 403,
+        message: "Unauthorized",
+        code: AUTH_ERROR_CODE.UNAUTHORIZED,
+      });
+    }
+    next();
+  };
 };

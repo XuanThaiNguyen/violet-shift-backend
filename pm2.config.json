@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "violet-shift-backend",
+      "script": "yarn",
+      "args": "start",
+      "cwd": "."
+    }
+  ]
+}

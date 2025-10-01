@@ -3,10 +3,10 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
-import { validateLoginUser, validateNewPassword } from "../validations/authValidation";
+import { validateLoginUser, validateNewPassword, validateUpdatePassword } from "../validations/authValidation";
 import { API_STATUS } from "../constants/apiStatus";
 import { AuthRequest } from "../middleware/type";
-import { LOGIN_ERROR_CODE } from "../constants/errorCode";
+import { LOGIN_ERROR_CODE, ME_ERROR_CODE } from "../constants/errorCode";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -81,13 +81,78 @@ export const newPassword = async (req: Request, res: Response) => {
       });
     }
 
+    const user = await User.findById((req as AuthRequest).userId, { password: 0 });
+    if (!user)
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: ME_ERROR_CODE.USER_NOT_FOUND,
+      });
+
+    user.password = await bcrypt.hash(passwordData.password, 10);
+    await user.save();
+
+    const token = jwt.sign(
+      { userId: String(user._id), email: user.email },
+      process.env["JWT_SECRET"] as string,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      message: "Password updated successfully",
+      data: {
+        token,
+        user: user.toObject(),
+      },
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: ME_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const updatePassword = async (req: Request, res: Response) => {
+  try {
+    const { error, value: passwordData } = validateUpdatePassword(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+      });
+    }
+
     const user = await User.findById((req as AuthRequest).userId);
     if (!user)
       return sendResponse({
         res,
         statusCode: 404,
         message: "User not found",
+        code: ME_ERROR_CODE.USER_NOT_FOUND,
       });
+
+    const isPasswordCorrect = await bcrypt.compare(
+      passwordData.currentPassword,
+      user.password
+    );
+    if (!isPasswordCorrect) {
+      return sendResponse({
+        res,
+        statusCode: 401,
+        message: "Invalid credentials",
+        code: LOGIN_ERROR_CODE.INVALID_CURRENT_PASSWORD,
+      });
+    }
 
     user.password = await bcrypt.hash(passwordData.password, 10);
     await user.save();
@@ -102,9 +167,11 @@ export const newPassword = async (req: Request, res: Response) => {
       res,
       statusCode: 500,
       message: "Internal server error",
+      code: LOGIN_ERROR_CODE.INTERNAL_SERVER_ERROR,
     });
   }
 };
+
 
 export const logout = async (req: Request, res: Response) => {
   try {
@@ -124,5 +191,3 @@ export const logout = async (req: Request, res: Response) => {
     });
   }
 };
-
-export default { login, logout };

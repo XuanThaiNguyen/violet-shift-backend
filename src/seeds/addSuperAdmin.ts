@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcrypt";
 import { connectDB, disconnectDB } from "../config/database";
 import User from "../models/userModel";
+import { ROLE_IDS } from "../constants/roles";
 
 async function run(): Promise<void> {
   try {
@@ -34,6 +35,7 @@ async function run(): Promise<void> {
       await User.create({
         email: adminEmail,
         password: hashed,
+        role: ROLE_IDS.ADMIN,
       });
       console.log("Admin user created.");
     } else {

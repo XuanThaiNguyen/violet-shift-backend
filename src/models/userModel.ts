@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import { IRole } from "./roleModel";
 
 export interface IUser extends Document {
   firstName: string;
@@ -9,8 +10,11 @@ export interface IUser extends Document {
   address: string;
   email: string;
   password: string;
+  gender: string;
+  birthdate: Date;
   createdAt: Date;
   updatedAt: Date;
+  role: IRole;
 }
 
 const UserSchema: Schema<IUser> = new Schema<IUser>(
@@ -31,6 +35,14 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       type: String,
       trim: true,
     },
+    gender: {
+      type: String,
+      enum: ["male", "female", "intersex", "non-binary", "unspecified", "other"],
+      trim: true,
+    },
+    birthdate: {
+      type: Date,
+    },
     address: {
       type: String,
       trim: true,
@@ -49,6 +61,11 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     },
     password: {
       type: String,
+    },
+    role: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Role",
     },
   },
   {

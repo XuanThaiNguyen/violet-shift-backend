@@ -10,6 +10,18 @@ interface ISendResponse<T = any, M = any> {
   meta?: M;
 }
 
+export interface IPaginationMeta {
+  page: number;
+  perPage: number;
+  total: number;
+}
+export interface IPagination<T> {
+  page: number;
+  perPage: number;
+  total: number;
+  data: T[];
+}
+
 export const sendResponse = <T = any, M = any>({
   res,
   code = 200,

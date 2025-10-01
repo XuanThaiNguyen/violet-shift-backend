@@ -4,6 +4,39 @@ This directory contains database seed scripts for populating the database with i
 
 ## Available Seeds
 
+### Add Roles (`addRoles.ts`)
+
+Creates or updates core roles with fixed Mongo ObjectIds so you can safely reference them across environments.
+
+#### Usage
+
+```bash
+# Using yarn
+yarn seed:roles
+
+# Using npm
+npm run seed:roles
+```
+
+#### Roles and Fixed IDs
+
+Defined in `src/constants/roles.ts` and upserted by the seed:
+These IDs are stable and should not be changed once used by other data.
+
+#### Features
+
+- **Idempotent**: Uses upsert to avoid duplicates
+- **Stable IDs**: Applies predefined `_id`s for consistent references
+- **Safe Re-runs**: Can be re-run any time to restore baseline roles
+
+#### Environment Requirements
+
+- `MONGO_URL`: MongoDB connection string
+
+#### Output
+
+- `"Roles seeded/updated successfully."` then `"Seed roles completed."`
+
 ### Add Super Admin (`addSuperAdmin.ts`)
 
 Creates or updates a super admin user in the database.

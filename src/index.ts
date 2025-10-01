@@ -7,6 +7,8 @@ import { connectDB, disconnectDB } from "./config/database";
 import { route } from "./routes";
 import Joi from "joi";
 import RedisService from "./services/redis";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
 
 // Validate environment variables
 dotenv.config();
@@ -40,6 +42,10 @@ app.use(cors({
 
 // Logger
 app.use(morgan("dev"));
+
+// Swagger
+const docsPath = (process.env.PREFIX  || "") + "/docs";
+app.use(docsPath, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const port = process.env.PORT || 3000;
 

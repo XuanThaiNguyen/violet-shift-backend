@@ -1,11 +1,10 @@
-import jwt from "jsonwebtoken";
 import { sendResponse } from "../utils/sendResponse";
 import { AuthRequest } from "./type";
 import RedisService from "../services/redis";
 
 import type { Request, Response, NextFunction, Handler } from "express";
 
-export const requireAuth: Handler = async (
+export const requireToken: Handler = async (
   req: Request,
   res: Response,
   next: NextFunction
