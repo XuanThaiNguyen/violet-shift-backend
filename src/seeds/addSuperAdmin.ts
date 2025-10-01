@@ -1,7 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { connectDB, disconnectDB } from "../config/database";
-import User from "../models/user.model";
+import User from "../models/userModel";
 
 async function run(): Promise<void> {
   try {
