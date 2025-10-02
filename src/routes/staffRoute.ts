@@ -100,7 +100,7 @@ router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs
 /**
  * @swagger
  * /staffs/invite:
- *   patch:
+ *   post:
  *     tags:
  *       - Staffs
  *     summary: Invite staff

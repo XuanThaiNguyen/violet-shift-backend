@@ -10,6 +10,7 @@ import {
 import { FilterQuery, PipelineStage, Types } from "mongoose";
 import MemberInvitation from "../models/memberInvitation";
 import { nanoid } from "nanoid";
+import RedisService from "../services/redis";
 // nanoid is ESM-only; use dynamic import in CommonJS environment
 
 export const getStaffs = async (req: Request, res: Response) => {
@@ -40,11 +41,13 @@ export const getStaffs = async (req: Request, res: Response) => {
                 // maybe name here
               ],
             },
-            queryData.role ? {
-              role: {
-                $eq: Types.ObjectId.createFromHexString(queryData.role),
-              },
-            } : {},
+            queryData.role
+              ? {
+                  role: {
+                    $eq: Types.ObjectId.createFromHexString(queryData.role),
+                  },
+                }
+              : {},
           ],
         },
       },
@@ -80,7 +83,6 @@ export const getStaffs = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error)
     return sendResponse({
       res,
       statusCode: 500,
@@ -103,40 +105,64 @@ export const inviteStaff = async (req: Request, res: Response) => {
     }
     const token = nanoid(10);
 
-    const invitation = await MemberInvitation.updateOne(
-      {
-        email: invitationData.email,
-        role: invitationData.role,
-        token: token,
-        isAccepted: false,
-        invitedAt: new Date(),
-        acceptedAt: null,
-      },
-      {
-        upsert: true,
-        where: {
+    try {
+      const invitation = await MemberInvitation.findOneAndUpdate(
+        {
           email: invitationData.email,
           isAccepted: false,
         },
-        $set: {
-          token: token,
-          role: invitationData.role,
-          isAccepted: false,
-          invitedAt: new Date(),
-          acceptedAt: null,
+        {
+          $set: {
+            token: token,
+            role: invitationData.role,
+            isAccepted: false,
+            invitedAt: new Date(),
+            acceptedAt: null,
+          },
         },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+        }
+      );
+      if (!invitation) {
+        return sendResponse({
+          res,
+          statusCode: 500,
+          message: "Internal server error",
+          code: STAFF_ERROR_CODE.INVITATION_NOT_CREATED,
+        });
       }
-    );
-    if (!invitation) {
+    } catch (error: any) {
+      
+      // Check for MongoDB duplicate key error
+      if (error.code === 11000 || error.message?.includes('duplicate key error')) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "User has already been invited or has joined the organization",
+          code: STAFF_ERROR_CODE.USER_JOINED_ALREADY,
+        });
+      }
+      
       return sendResponse({
         res,
-        statusCode: 400,
-        message: "Invitation not created",
-        code: STAFF_ERROR_CODE.INVITATION_NOT_CREATED,
+        statusCode: 500,
+        message: "Failed to create invitation",
+        code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
       });
     }
 
-    const setUpUrl = `${process.env.FRONTEND_URL}/auth/new-password?token=${token}`;
+    const redis = RedisService.getInstance();
+    // for password setup, the invitation will be deleted after 3 days
+    redis.setex(
+      `token:auth_temp:${token}`,
+      3 * 60 * 60 * 24,
+      invitationData.email
+    );
+
+    const setUpUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
     console.log("🚀 ~ setUpUrl:", setUpUrl);
 
     return sendResponse({
