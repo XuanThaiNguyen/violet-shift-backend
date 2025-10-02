@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { isInRoles, requireAuth } from "../middleware/authMiddleware";
-import { getStaffs, inviteStaff } from "../controllers/staffController";
+import { acceptInvitation, getStaffs, inviteStaff } from "../controllers/staffController";
 import { ROLE_IDS } from "../constants/roles";
 
 const router = Router();
@@ -130,5 +130,41 @@ router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs
  * 
 */
 router.post("/invite", requireAuth, isInRoles([ROLE_IDS.ADMIN]), inviteStaff);
+
+/**
+ * @swagger
+ * /staffs/accept-invitation:
+ *   get:
+ *     tags:
+ *       - Staffs
+ *     summary: Accept invitation
+ *     parameters:
+ *       - name: token
+ *         in: query
+ *         description: Token to accept invitation
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Accept invitation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   example: 1234567890
+ *                 userId:
+ *                   type: string
+ *                   example: 1234567890
+ *                 email:
+ *                   type: string
+ *                   example: john.doe@example.com
+ *                 role:
+ *                   type: string
+ *                   example: 1234567890
+ */
+router.get("/accept-invitation", acceptInvitation);
 
 export default router;

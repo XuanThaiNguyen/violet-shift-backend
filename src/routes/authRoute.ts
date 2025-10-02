@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { ApiKeys } from "../constants/apiKeys";
-import { login, logout, newPassword, updatePassword } from "../controllers/authController";
+import { forgotPassword, login, logout, newPassword, updatePassword } from "../controllers/authController";
 import { requireAuth } from "../middleware/authMiddleware";
 import { requireToken } from "../middleware/tokenMiddleware";
 
@@ -182,5 +182,34 @@ router.post('/new-password', requireToken, newPassword); // for new user or forg
  *                   example: "Password updated successfully"
  */
 router.post('/update-password', requireAuth, updatePassword); // for update password
-
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Forgot password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "john.doe@example.com"
+ *     responses:
+ *       200:
+ *         description: Forgot password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset email sent successfully"
+ */
+router.post('/forgot-password', forgotPassword);
 export default router;

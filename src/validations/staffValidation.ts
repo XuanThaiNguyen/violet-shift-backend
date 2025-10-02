@@ -14,6 +14,10 @@ export interface IInviteStaff {
   role: string;
 }
 
+export interface IAcceptInvitation {
+  token: string;
+}
+
 export const validateQueryStaff = (data: IQueryStaff) => {
   const schema = Joi.object<IQueryStaff>({
     query: Joi.string(),
@@ -30,6 +34,13 @@ export const validateInviteStaff = (data: IInviteStaff) => {
   const schema = Joi.object<IInviteStaff>({
     email: Joi.string().email().required(),
     role: Joi.string().required(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateAcceptInvitation = (data: IAcceptInvitation) => {
+  const schema = Joi.object<IAcceptInvitation>({
+    token: Joi.string().required(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

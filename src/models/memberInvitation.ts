@@ -7,7 +7,7 @@ export interface IMemberInvitation extends Document {
   token: string;
   isAccepted: boolean;
   acceptedAt: Date;
-  invitedAt: Date;
+  expiresAt: Date;
 }
 
 const MemberInvitationSchema: Schema<IMemberInvitation> =
@@ -38,7 +38,7 @@ const MemberInvitationSchema: Schema<IMemberInvitation> =
       acceptedAt: {
         type: Date,
       },
-      invitedAt: {
+      expiresAt: {
         type: Date,
         default: Date.now,
       },

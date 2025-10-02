@@ -3,10 +3,12 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
-import { validateLoginUser, validateNewPassword, validateUpdatePassword } from "../validations/authValidation";
+import { validateLoginUser, validateNewPassword, validateUpdatePassword, validateForgotPassword } from "../validations/authValidation";
 import { API_STATUS } from "../constants/apiStatus";
 import { AuthRequest } from "../middleware/type";
 import { LOGIN_ERROR_CODE, ME_ERROR_CODE } from "../constants/errorCode";
+import { nanoid } from "nanoid";
+import RedisService from "../services/redis";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -172,6 +174,52 @@ export const updatePassword = async (req: Request, res: Response) => {
   }
 };
 
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { error, value: userData } = validateForgotPassword(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: LOGIN_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const user = await User.findOne({ email: userData.email });
+    if (!user) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: LOGIN_ERROR_CODE.USER_NOT_FOUND,
+      });
+    }
+
+    const token = nanoid(10);
+
+    const redis = RedisService.getInstance();
+    redis.setex(`token:auth_temp:${token}`, 60 * 60 * 0.5, user.email);
+    const resetUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
+    // TODO: Send email to user
+    console.log("🚀 ~ resetUrl:", resetUrl);
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      data: API_STATUS.OK,
+      message: "Password reset email sent successfully",
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: LOGIN_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
 
 export const logout = async (req: Request, res: Response) => {
   try {

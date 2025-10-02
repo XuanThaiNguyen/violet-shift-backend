@@ -5,6 +5,10 @@ interface IAuthLogin {
   password: string;
 }
 
+interface IAuthForgotPassword {
+  email: string;
+}
+
 interface IAuthNewPassword {
   password: string;
 }
@@ -33,6 +37,13 @@ export const validateUpdatePassword = (data: IAuthUpdatePassword) => {
   const schema = Joi.object<IAuthUpdatePassword>({
     currentPassword: Joi.string().required().label("Current Password"),
     password: Joi.string().required().label("Password"),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateForgotPassword = (data: IAuthForgotPassword) => {
+  const schema = Joi.object<IAuthForgotPassword>({
+    email: Joi.string().email().required().label("Email"),
   });
   return schema.validate(data, { stripUnknown: true });
 };

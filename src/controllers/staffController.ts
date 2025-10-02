@@ -6,8 +6,10 @@ import {
   validateInviteStaff,
   validateQueryStaff,
   IQueryStaff,
+  validateAcceptInvitation,
+  IAcceptInvitation,
 } from "../validations/staffValidation";
-import { FilterQuery, PipelineStage, Types } from "mongoose";
+import mongoose, { FilterQuery, PipelineStage, Types } from "mongoose";
 import MemberInvitation from "../models/memberInvitation";
 import { nanoid } from "nanoid";
 import RedisService from "../services/redis";
@@ -116,7 +118,7 @@ export const inviteStaff = async (req: Request, res: Response) => {
             token: token,
             role: invitationData.role,
             isAccepted: false,
-            invitedAt: new Date(),
+            expiresAt: new Date(Date.now() + 3 * 60 * 60 * 24 * 1000),
             acceptedAt: null,
           },
         },
@@ -135,17 +137,20 @@ export const inviteStaff = async (req: Request, res: Response) => {
         });
       }
     } catch (error: any) {
-      
       // Check for MongoDB duplicate key error
-      if (error.code === 11000 || error.message?.includes('duplicate key error')) {
+      if (
+        error.code === 11000 ||
+        error.message?.includes("duplicate key error")
+      ) {
         return sendResponse({
           res,
           statusCode: 400,
-          message: "User has already been invited or has joined the organization",
+          message:
+            "User has already been invited or has joined the organization",
           code: STAFF_ERROR_CODE.USER_JOINED_ALREADY,
         });
       }
-      
+
       return sendResponse({
         res,
         statusCode: 500,
@@ -153,14 +158,6 @@ export const inviteStaff = async (req: Request, res: Response) => {
         code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
       });
     }
-
-    const redis = RedisService.getInstance();
-    // for password setup, the invitation will be deleted after 3 days
-    redis.setex(
-      `token:auth_temp:${token}`,
-      3 * 60 * 60 * 24,
-      invitationData.email
-    );
 
     const setUpUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
     console.log("🚀 ~ setUpUrl:", setUpUrl);
@@ -177,6 +174,122 @@ export const inviteStaff = async (req: Request, res: Response) => {
       statusCode: 500,
       message: "Internal server error",
       code: ME_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const acceptInvitation = async (req: Request, res: Response) => {
+  try {
+    const { error, value: invitationData } = validateAcceptInvitation(
+      req.query as unknown as IAcceptInvitation
+    );
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: STAFF_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const session = await mongoose.startSession();
+    let invitationDoc: any = null;
+    let userDoc: any = null;
+
+    try {
+      await session.withTransaction(async () => {
+        invitationDoc = await MemberInvitation.findOneAndUpdate(
+          {
+            token: invitationData.token,
+            isAccepted: false,
+            expiresAt: { $gte: new Date() },
+          },
+          {
+            $set: {
+              isAccepted: true,
+              acceptedAt: new Date(),
+            },
+          },
+          {
+            new: true,
+            session,
+          }
+        );
+  
+        if (!invitationDoc) {
+          throw new Error("INVALID_INVITATION");
+        }
+  
+        userDoc = await User.findOneAndUpdate(
+          { email: invitationDoc.email },
+          {
+            $set: {
+              role: invitationDoc.role,
+              email: invitationDoc.email,
+            },
+          },
+          { upsert: true, new: true, session }
+        );
+  
+        if (!userDoc) {
+          throw new Error("USER_CREATE_FAILED");
+        }
+      });
+
+    } catch (error) {
+      try {
+        await session.abortTransaction();
+      } catch {}
+      
+
+      if (error instanceof Error && error.message === "INVALID_INVITATION") {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Invalid invitation",
+          code: STAFF_ERROR_CODE.INVALID_INVITATION_TOKEN,
+        });
+      }
+      if (error instanceof Error && error.message === "USER_CREATE_FAILED") {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Failed to accept invitation",
+          code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        });
+      }
+    } finally {
+      session.endSession();
+    }
+
+    const tempToken = nanoid(10);
+
+    const redis = RedisService.getInstance();
+    // for password setup, the token will be deleted after 0.5 hours
+    redis.setex(
+      `token:auth_temp:${tempToken}`,
+      60 * 60 * 0.5,
+      userDoc.email
+    );
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Invitation accepted successfully",
+      data: {
+        token: tempToken,
+        userId: userDoc._id,
+        email: userDoc.email,
+        role: userDoc.role,
+      },
+    });
+  } catch (error) {
+    console.log("🚀 ~ error:", error)
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
     });
   }
 };

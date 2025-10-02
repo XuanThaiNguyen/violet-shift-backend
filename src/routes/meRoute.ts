@@ -3,6 +3,7 @@ import { getMe, updateMe } from "../controllers/me";
 import { requireAuth } from "../middleware/authMiddleware";
 
 const router = Router();
+router.use(requireAuth);
 
 /**
  * @swagger
@@ -49,7 +50,7 @@ const router = Router();
  *                     example: 2021-01-01T00:00:00.000Z
  * 
  */
-router.get("/", requireAuth, getMe);
+router.get("/", getMe);
 /**
  * @swagger
  * /me:
@@ -124,6 +125,6 @@ router.get("/", requireAuth, getMe);
  *                         example: 2021-01-01T00:00:00.000Z
  * 
 */
-router.patch("/", requireAuth, updateMe);
+router.patch("/", updateMe);
 
 export default router;

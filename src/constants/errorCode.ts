@@ -1,8 +1,9 @@
 export const LOGIN_ERROR_CODE = {
   INVALID_REQUEST: 1000, // user not found or invalid credentials
-  INVALID_CURRENT_PASSWORD: 1001, // invalid current password
-  EMAIL_CAN_BE_SENT: 1002, // email can be sent
-  INTERNAL_SERVER_ERROR: 1003,
+  USER_NOT_FOUND: 1001, // user not found
+  INVALID_CURRENT_PASSWORD: 1002, // invalid current password
+  EMAIL_CAN_BE_SENT: 1003, // email can be sent
+  INTERNAL_SERVER_ERROR: 1004,
 };
 
 export const ME_ERROR_CODE = {
@@ -16,7 +17,9 @@ export const STAFF_ERROR_CODE = {
   INVALID_REQUEST: 3000, // invalid request
   USER_JOINED_ALREADY: 3001, // user joined already
   INVITATION_NOT_CREATED: 3002, // invitation not created
-  INTERNAL_SERVER_ERROR: 3003,
+  INVALID_INVITATION_TOKEN: 3003, // invalid invitation token
+  INVITATION_EXPIRED: 3004, // invitation expired
+  INTERNAL_SERVER_ERROR: 3005,
 };
 
 export const AUTH_ERROR_CODE = {
