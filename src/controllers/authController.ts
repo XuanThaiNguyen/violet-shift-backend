@@ -21,7 +21,7 @@ export const login = async (req: Request, res: Response) => {
       });
 
     const user = await User.findOne({ email: userData.email });
-    if (!user) {
+    if (!user?.password) {
       return sendResponse({
         res,
         statusCode: 401,
@@ -31,7 +31,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const isPasswordCorrect = await bcrypt.compare(
-      req.body.password,
+      userData.password,
       user.password
     );
     if (!isPasswordCorrect) {
