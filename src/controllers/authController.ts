@@ -20,7 +20,7 @@ export const login = async (req: Request, res: Response) => {
         message: error.details[0].message,
       });
 
-    const user = await User.findOne({ email: userData.email });
+    const user = await User.findOne({ email: userData.email }, { __v: 0 });
     if (!user?.password) {
       return sendResponse({
         res,
@@ -43,10 +43,10 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const { password, ...userInfo } = user.toObject();
+    const { password, ...userInfo } = user.toObject({ virtuals: true });
 
     const token = jwt.sign(
-      { userId: String(user._id), email: user.email },
+      { userId: String(user.id), email: user.email },
       process.env["JWT_SECRET"] as string,
       {
         expiresIn: "7d",
@@ -103,6 +103,10 @@ export const newPassword = async (req: Request, res: Response) => {
       }
     );
 
+    const tempToken = req.headers["authorization"];
+    const redis = RedisService.getInstance();
+    redis.del(`token:auth_temp:${tempToken}`);
+
     return sendResponse({
       res,
       statusCode: 200,
@@ -114,6 +118,7 @@ export const newPassword = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    console.log("🚀 ~ error:", error)
     return sendResponse({
       res,
       statusCode: 500,
@@ -199,7 +204,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     const token = nanoid(10);
 
     const redis = RedisService.getInstance();
-    redis.setex(`token:auth_temp:${token}`, 60 * 60 * 0.5, user.email);
+    redis.setex(`token:auth_temp:${token}`, 60 * 60 * 0.5, user.id);
     const resetUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
     // TODO: Send email to user
     console.log("🚀 ~ resetUrl:", resetUrl);

@@ -7,6 +7,7 @@ export interface IUser extends Document {
   middleName: string;
   preferredName: string;
   phoneNumber: string;
+  employmentType: string;
   address: string;
   email: string;
   password: string;
@@ -38,6 +39,11 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     gender: {
       type: String,
       enum: ["male", "female", "intersex", "non-binary", "unspecified", "other"],
+      trim: true,
+    },
+    employmentType: {
+      type: String,
+      enum: ["full_time", "part_time", "contract", "casual", "other"],
       trim: true,
     },
     birthdate: {

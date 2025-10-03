@@ -7,7 +7,10 @@ import { validateUpdateUser } from "../validations/userValidation";
 
 export const getMe = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById((req as AuthRequest).userId);
+    const user = await User.findById((req as AuthRequest).userId, {
+      __v: 0,
+      password: 0,
+    });
     if (!user) {
       return sendResponse({
         res,
@@ -16,7 +19,7 @@ export const getMe = async (req: Request, res: Response) => {
         message: "User not found",
       });
     }
-    const { password, ...userInfo } = user.toObject();
+    const userInfo = user.toObject({ virtuals: true });
     return sendResponse({
       res,
       statusCode: 200,
@@ -37,7 +40,11 @@ export const updateMe = async (req: Request, res: Response) => {
   try {
     const { error, value: userData } = validateUpdateUser(req.body);
     userData.id = (req as AuthRequest).userId;
-    const updatedUser = await User.findOneAndUpdate({ _id: userData.id }, userData);
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userData.id },
+      userData,
+      { projection: { password: 0 } }
+    );
     if (!updatedUser) {
       return sendResponse({
         res,
@@ -46,7 +53,7 @@ export const updateMe = async (req: Request, res: Response) => {
         code: ME_ERROR_CODE.USER_NOT_FOUND,
       });
     }
-    const { password, ...userInfo } = updatedUser?.toObject() || {};
+    const userInfo = updatedUser?.toObject({ virtuals: true }) || {};
     return sendResponse({
       res,
       statusCode: 200,
