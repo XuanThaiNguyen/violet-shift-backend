@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { ApiKeys } from "../constants/apiKeys";
-import { forgotPassword, login, logout, newPassword, updatePassword } from "../controllers/authController";
+import {
+  forgotPassword,
+  login,
+  logout,
+  newPassword,
+  updatePassword,
+} from "../controllers/authController";
 import { requireAuth } from "../middleware/authMiddleware";
 import { requireToken } from "../middleware/tokenMiddleware";
 
@@ -42,7 +48,7 @@ const router = Router();
  *                   user:
  *                     type: object
  *                     properties:
- *                       id:    
+ *                       id:
  *                         type: string
  *                         example: 1234567890
  *                       firstName:
@@ -66,8 +72,8 @@ const router = Router();
  *                       updatedAt:
  *                         type: string
  *                         example: 2021-01-01T00:00:00.000Z
- * 
-*/
+ *
+ */
 router.post(ApiKeys.LOGIN, login);
 /**
  * @swagger
@@ -148,7 +154,7 @@ router.post(ApiKeys.LOGOUT, requireAuth, logout);
  *                       type: string
  *                       example: "2021-01-01T00:00:00.000Z"
  */
-router.post('/new-password', requireToken, newPassword); // for new user or forgot password
+router.post("/new-password", requireToken, newPassword); // for new user or forgot password
 /**
  * @swagger
  * /auth/update-password:
@@ -181,7 +187,7 @@ router.post('/new-password', requireToken, newPassword); // for new user or forg
  *                   type: string
  *                   example: "Password updated successfully"
  */
-router.post('/update-password', requireAuth, updatePassword); // for update password
+router.post("/update-password", requireAuth, updatePassword); // for update password
 /**
  * @swagger
  * /auth/forgot-password:
@@ -211,5 +217,5 @@ router.post('/update-password', requireAuth, updatePassword); // for update pass
  *                   type: string
  *                   example: "Password reset email sent successfully"
  */
-router.post('/forgot-password', forgotPassword);
+router.post("/forgot-password", forgotPassword);
 export default router;

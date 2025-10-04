@@ -94,7 +94,7 @@ const router = Router();
  *                     perPage:
  *                       type: number
  *                       example: 10
- * 
+ *
  */
 router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs);
 /**
@@ -127,8 +127,8 @@ router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs
  *             schema:
  *               type: string
  *               example: 1234567890
- * 
-*/
+ *
+ */
 router.post("/invite", requireAuth, isInRoles([ROLE_IDS.ADMIN]), inviteStaff);
 
 /**

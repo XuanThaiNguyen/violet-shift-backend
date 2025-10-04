@@ -31,20 +31,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Security
-app.use(helmet({
-  xPoweredBy: false,
-}));
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  // allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  helmet({
+    xPoweredBy: false,
+  }),
+);
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    // allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // Logger
 app.use(morgan("dev"));
 
 // Swagger
-const docsPath = (process.env.PREFIX  || "") + "/docs";
+const docsPath = (process.env.PREFIX || "") + "/docs";
 app.use(docsPath, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const port = process.env.PORT || 3000;

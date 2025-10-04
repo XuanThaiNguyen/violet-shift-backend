@@ -5,11 +5,7 @@ import { AuthRequest } from "./type";
 import User from "../models/userModel";
 import { AUTH_ERROR_CODE } from "../constants/errorCode";
 
-export const requireAuth: Handler = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const requireAuth: Handler = (req: Request, res: Response, next: NextFunction) => {
   try {
     const header = req.headers["authorization"];
     if (!header || !header.startsWith("Bearer ")) {

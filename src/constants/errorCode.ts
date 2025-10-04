@@ -26,4 +26,3 @@ export const AUTH_ERROR_CODE = {
   UNAUTHORIZED: 9999991, // unauthorized
   UNAUTHENTICATED: 9999992, // unauthenticated
 };
-

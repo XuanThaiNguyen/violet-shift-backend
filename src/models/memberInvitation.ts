@@ -10,47 +10,46 @@ export interface IMemberInvitation extends Document {
   expiresAt: Date;
 }
 
-const MemberInvitationSchema: Schema<IMemberInvitation> =
-  new Schema<IMemberInvitation>(
-    {
-      email: {
-        required: true,
-        type: String,
-        trim: true,
-        index: true,
-        unique: true,
-      },
-      role: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        index: true,
-        ref: "Role",
-      },
-      token: {
-        type: String,
-        required: true,
-        index: true,
-      },
-      isAccepted: {
-        type: Boolean,
-        default: false,
-      },
-      acceptedAt: {
-        type: Date,
-      },
-      expiresAt: {
-        type: Date,
-        default: Date.now,
-      },
+const MemberInvitationSchema: Schema<IMemberInvitation> = new Schema<IMemberInvitation>(
+  {
+    email: {
+      required: true,
+      type: String,
+      trim: true,
+      index: true,
+      unique: true,
     },
-    {
-      timestamps: true,
-    }
-  );
+    role: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      index: true,
+      ref: "Role",
+    },
+    token: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    isAccepted: {
+      type: Boolean,
+      default: false,
+    },
+    acceptedAt: {
+      type: Date,
+    },
+    expiresAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 export const MemberInvitation: Model<IMemberInvitation> = mongoose.model<IMemberInvitation>(
   "MemberInvitation",
-  MemberInvitationSchema
+  MemberInvitationSchema,
 );
 
 export default MemberInvitation;

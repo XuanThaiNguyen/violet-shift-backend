@@ -19,7 +19,7 @@ async function run(): Promise<void> {
               description: role.description,
             },
           },
-          { upsert: true }
+          { upsert: true },
         );
         console.log(`Role ${role.name} seeded/updated successfully.`);
       } catch (error) {

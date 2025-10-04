@@ -22,6 +22,6 @@ const router = Router();
  *                   type: string
  *                   example: "OK"
  */
-router.get('/', healthz);
+router.get("/", healthz);
 
 export default router;

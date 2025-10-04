@@ -3,7 +3,12 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
-import { validateLoginUser, validateNewPassword, validateUpdatePassword, validateForgotPassword } from "../validations/authValidation";
+import {
+  validateLoginUser,
+  validateNewPassword,
+  validateUpdatePassword,
+  validateForgotPassword,
+} from "../validations/authValidation";
 import { API_STATUS } from "../constants/apiStatus";
 import { AuthRequest } from "../middleware/type";
 import { LOGIN_ERROR_CODE, ME_ERROR_CODE } from "../constants/errorCode";
@@ -30,10 +35,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const isPasswordCorrect = await bcrypt.compare(
-      userData.password,
-      user.password
-    );
+    const isPasswordCorrect = await bcrypt.compare(userData.password, user.password);
     if (!isPasswordCorrect) {
       return sendResponse({
         res,
@@ -50,7 +52,7 @@ export const login = async (req: Request, res: Response) => {
       process.env["JWT_SECRET"] as string,
       {
         expiresIn: "7d",
-      }
+      },
     );
 
     return sendResponse({
@@ -100,7 +102,7 @@ export const newPassword = async (req: Request, res: Response) => {
       process.env["JWT_SECRET"] as string,
       {
         expiresIn: "7d",
-      }
+      },
     );
 
     const tempToken = req.headers["authorization"];
@@ -118,7 +120,7 @@ export const newPassword = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error)
+    console.log("🚀 ~ error:", error);
     return sendResponse({
       res,
       statusCode: 500,
@@ -148,10 +150,7 @@ export const updatePassword = async (req: Request, res: Response) => {
         code: ME_ERROR_CODE.USER_NOT_FOUND,
       });
 
-    const isPasswordCorrect = await bcrypt.compare(
-      passwordData.currentPassword,
-      user.password
-    );
+    const isPasswordCorrect = await bcrypt.compare(passwordData.currentPassword, user.password);
     if (!isPasswordCorrect) {
       return sendResponse({
         res,

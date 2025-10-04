@@ -17,9 +17,7 @@ import RedisService from "../services/redis";
 
 export const getStaffs = async (req: Request, res: Response) => {
   try {
-    const { error, value: queryData } = validateQueryStaff(
-      req.query as unknown as IQueryStaff
-    );
+    const { error, value: queryData } = validateQueryStaff(req.query as unknown as IQueryStaff);
     if (error) {
       return sendResponse({
         res,
@@ -126,7 +124,7 @@ export const inviteStaff = async (req: Request, res: Response) => {
           upsert: true,
           new: true,
           runValidators: true,
-        }
+        },
       );
       if (!invitation) {
         return sendResponse({
@@ -138,15 +136,11 @@ export const inviteStaff = async (req: Request, res: Response) => {
       }
     } catch (error: any) {
       // Check for MongoDB duplicate key error
-      if (
-        error.code === 11000 ||
-        error.message?.includes("duplicate key error")
-      ) {
+      if (error.code === 11000 || error.message?.includes("duplicate key error")) {
         return sendResponse({
           res,
           statusCode: 400,
-          message:
-            "User has already been invited or has joined the organization",
+          message: "User has already been invited or has joined the organization",
           code: STAFF_ERROR_CODE.USER_JOINED_ALREADY,
         });
       }
@@ -181,7 +175,7 @@ export const inviteStaff = async (req: Request, res: Response) => {
 export const acceptInvitation = async (req: Request, res: Response) => {
   try {
     const { error, value: invitationData } = validateAcceptInvitation(
-      req.query as unknown as IAcceptInvitation
+      req.query as unknown as IAcceptInvitation,
     );
     if (error) {
       return sendResponse({
@@ -213,13 +207,13 @@ export const acceptInvitation = async (req: Request, res: Response) => {
           {
             new: true,
             session,
-          }
+          },
         );
-  
+
         if (!invitationDoc) {
           throw new Error("INVALID_INVITATION");
         }
-  
+
         userDoc = await User.findOneAndUpdate(
           { email: invitationDoc.email },
           {
@@ -228,19 +222,17 @@ export const acceptInvitation = async (req: Request, res: Response) => {
               email: invitationDoc.email,
             },
           },
-          { upsert: true, new: true, session }
+          { upsert: true, new: true, session },
         );
-  
+
         if (!userDoc) {
           throw new Error("USER_CREATE_FAILED");
         }
       });
-
     } catch (error) {
       try {
         await session.abortTransaction();
       } catch {}
-      
 
       if (error instanceof Error && error.message === "INVALID_INVITATION") {
         return sendResponse({
@@ -266,11 +258,7 @@ export const acceptInvitation = async (req: Request, res: Response) => {
 
     const redis = RedisService.getInstance();
     // for password setup, the token will be deleted after 0.5 hours
-    redis.setex(
-      `token:auth_temp:${tempToken}`,
-      60 * 60 * 0.5,
-      userDoc.email
-    );
+    redis.setex(`token:auth_temp:${tempToken}`, 60 * 60 * 0.5, userDoc.email);
 
     return sendResponse({
       res,
@@ -284,7 +272,7 @@ export const acceptInvitation = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error)
+    console.log("🚀 ~ error:", error);
     return sendResponse({
       res,
       statusCode: 500,

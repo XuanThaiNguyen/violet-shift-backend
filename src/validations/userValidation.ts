@@ -1,16 +1,16 @@
 import Joi from "joi";
 
 interface IUpdateUser {
-    address: string;
-    firstName: string;
-    middleName: string;
-    lastName: string;
-    prefferedName: string;
-    gender: string;
-    birthdate: string;
-    phone: string;
-    email: string;
-  }
+  address: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  prefferedName: string;
+  gender: string;
+  birthdate: string;
+  phone: string;
+  email: string;
+}
 
 export const validateUpdateUser = (data: IUpdateUser) => {
   const schema = Joi.object<IUpdateUser>({

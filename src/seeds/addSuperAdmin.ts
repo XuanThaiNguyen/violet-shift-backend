@@ -22,9 +22,7 @@ async function run(): Promise<void> {
     }
 
     if (!adminEmail || !adminPassword) {
-      throw new Error(
-        "Usage: yarn seed:admin email=admin@mail.com pass=123123"
-      );
+      throw new Error("Usage: yarn seed:admin email=admin@mail.com pass=123123");
     }
 
     const existing = await User.findOne({ email: adminEmail });
@@ -59,4 +57,3 @@ async function run(): Promise<void> {
 run().then(() => {
   console.log("Seed completed.");
 });
-

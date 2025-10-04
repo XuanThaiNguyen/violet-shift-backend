@@ -20,7 +20,7 @@ const RoleSchema: Schema<IRole> = new Schema<IRole>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Role: Model<IRole> = mongoose.model<IRole>("Role", RoleSchema);

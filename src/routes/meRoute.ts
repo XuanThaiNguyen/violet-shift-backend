@@ -48,7 +48,7 @@ router.use(requireAuth);
  *                   updatedAt:
  *                     type: string
  *                     example: 2021-01-01T00:00:00.000Z
- * 
+ *
  */
 router.get("/", getMe);
 /**
@@ -99,7 +99,7 @@ router.get("/", getMe);
  *             schema:
  *               type: object
  *               properties:
- *                       id:    
+ *                       id:
  *                         type: string
  *                         example: 1234567890
  *                       firstName:
@@ -123,8 +123,8 @@ router.get("/", getMe);
  *                       updatedAt:
  *                         type: string
  *                         example: 2021-01-01T00:00:00.000Z
- * 
-*/
+ *
+ */
 router.patch("/", updateMe);
 
 export default router;

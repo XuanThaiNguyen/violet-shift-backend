@@ -4,11 +4,7 @@ import RedisService from "../services/redis";
 
 import type { Request, Response, NextFunction, Handler } from "express";
 
-export const requireToken: Handler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const requireToken: Handler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers["authorization"];
     if (!token) {
