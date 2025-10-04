@@ -22,6 +22,11 @@ export const STAFF_ERROR_CODE = {
   INTERNAL_SERVER_ERROR: 3005,
 };
 
+export const CLIENT_ERROR_CODE = {
+  CLIENT_NOT_FOUND: 4000,
+  CLIENT_IS_EXISTING: 40001,
+};
+
 export const AUTH_ERROR_CODE = {
   UNAUTHORIZED: 9999991, // unauthorized
   UNAUTHENTICATED: 9999992, // unauthenticated
