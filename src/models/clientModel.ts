@@ -32,20 +32,20 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
     },
     salutation: {
       type: String,
-      enum: ["Mr", "Mrs", "Miss", "Ms", "Mx", "Doctor", "Them", "They"],
+      enum: ["mr", "mrs", "miss", "ms", "mx", "doctor", "them", "they"],
       trim: true,
+      required: function () {
+        return this.useSalutation === true;
+      },
     },
     firstName: {
       type: String,
-      trim: true,
     },
     lastName: {
       type: String,
-      trim: true,
     },
     middleName: {
       type: String,
-      trim: true,
     },
     displayName: {
       type: String,
@@ -54,7 +54,7 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
     },
     gender: {
       type: String,
-      enum: ["male", "female", "intersex", "non-binary", "unspecified", "other"],
+      enum: ["male", "female", "intersex", "non_binary", "unspecified", "other"],
       trim: true,
     },
     birthdate: {
@@ -71,12 +71,10 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
     phoneNumber: {
       type: String,
       trim: true,
-      index: true,
     },
     mobileNumber: {
       type: String,
       trim: true,
-      index: true,
     },
     religion: {
       type: String,
@@ -90,7 +88,7 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
     },
     maritalStatus: {
       type: String,
-      enum: ["single", "married", "de-facto", "divorced", "separated", "widowed"],
+      enum: ["single", "married", "de_facto", "divorced", "separated", "widowed"],
       trim: true,
     },
     nationality: {
