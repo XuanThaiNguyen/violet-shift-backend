@@ -1,9 +1,10 @@
-import type { Handler, NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { sendResponse } from "../utils/sendResponse";
 import { AuthRequest } from "./type";
 import User from "../models/userModel";
 import { AUTH_ERROR_CODE } from "../constants/errorCode";
+
+import type { Handler, NextFunction, Request, Response } from "express";
 
 export const requireAuth: Handler = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -13,6 +14,7 @@ export const requireAuth: Handler = (req: Request, res: Response, next: NextFunc
         res,
         statusCode: 401,
         message: "Unauthenticated",
+        code: AUTH_ERROR_CODE.UNAUTHENTICATED,
       });
     }
     const token = header.slice("Bearer ".length);
@@ -22,6 +24,7 @@ export const requireAuth: Handler = (req: Request, res: Response, next: NextFunc
         res,
         statusCode: 500,
         message: "JWT secret missing",
+        code: AUTH_ERROR_CODE.INTERNAL_SERVER_ERROR,
       });
 
     const payload = jwt.verify(token, secret) as { userId: string };
@@ -32,6 +35,7 @@ export const requireAuth: Handler = (req: Request, res: Response, next: NextFunc
       res,
       statusCode: 401,
       message: "Invalid token",
+      code: AUTH_ERROR_CODE.UNAUTHENTICATED,
     });
   }
 };

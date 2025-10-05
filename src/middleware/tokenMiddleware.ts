@@ -1,6 +1,7 @@
 import { sendResponse } from "../utils/sendResponse";
 import { AuthRequest } from "./type";
 import RedisService from "../services/redis";
+import { AUTH_ERROR_CODE } from "../constants/errorCode";
 
 import type { Request, Response, NextFunction, Handler } from "express";
 
@@ -15,7 +16,12 @@ export const requireToken: Handler = async (req: Request, res: Response, next: N
     const key = `token:auth_temp:${token}`;
     const userId = await redis.get(key);
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return sendResponse({
+        res,
+        statusCode: 401,
+        message: "Unauthorized",
+        code: AUTH_ERROR_CODE.UNAUTHENTICATED,
+      });
     }
 
     (req as AuthRequest).userId = userId;
@@ -25,6 +31,7 @@ export const requireToken: Handler = async (req: Request, res: Response, next: N
       res,
       statusCode: 401,
       message: "Invalid token",
-    });
+      code: AUTH_ERROR_CODE.UNAUTHENTICATED,
+    }); 
   }
 };

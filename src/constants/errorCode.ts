@@ -30,4 +30,5 @@ export const CLIENT_ERROR_CODE = {
 export const AUTH_ERROR_CODE = {
   UNAUTHORIZED: 9999991, // unauthorized
   UNAUTHENTICATED: 9999992, // unauthenticated
+  INTERNAL_SERVER_ERROR: 9999993, // internal server error
 };

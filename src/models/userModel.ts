@@ -13,6 +13,7 @@ export interface IUser extends Document {
   password: string;
   gender: string;
   birthdate: Date;
+  joinedAt: Date;
   createdAt: Date;
   updatedAt: Date;
   role: IRole;
@@ -45,6 +46,9 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       type: String,
       enum: ["full_time", "part_time", "contract", "casual", "other"],
       trim: true,
+    },
+    joinedAt: {
+      type: Date,
     },
     birthdate: {
       type: Date,

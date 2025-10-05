@@ -32,19 +32,27 @@ const router = Router();
  *         type: number
  *       - name: sort
  *         in: query
- *         description: Sort order
+ *         description: Sort Field
  *         required: false
  *         type: string
- *       - name: sortBy
+ *         enum:
+ *           - email
+ *           - createdAt
+ *       - name: order
  *         in: query
- *         description: Field to sort by
+ *         description: Sort Order
  *         required: false
  *         type: string
- *       - name: role
+ *         enum:
+ *           - asc
+ *           - desc
+ *       - name: roles
  *         in: query
- *         description: Role to filter by
+ *         description: Roles to filter by (can select multiple)
  *         required: false
- *         type: string
+ *         type: array
+ *         items:
+ *           type: string
  *     responses:
  *       200:
  *         description: Get staffs

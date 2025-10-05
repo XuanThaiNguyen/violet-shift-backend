@@ -17,6 +17,7 @@ import RedisService from "../services/redis";
 
 export const getStaffs = async (req: Request, res: Response) => {
   try {
+    console.log("🚀 ~ req.query:", req.query)
     const { error, value: queryData } = validateQueryStaff(req.query as unknown as IQueryStaff);
     if (error) {
       return sendResponse({
@@ -26,9 +27,10 @@ export const getStaffs = async (req: Request, res: Response) => {
         code: STAFF_ERROR_CODE.INVALID_REQUEST,
       });
     }
-
+    
     // Prepare pipeline
-    const skip = (+queryData.page - 1) * queryData.perPage;
+    const perPage = Math.min(queryData.perPage, 100);
+    const skip = (+queryData.page - 1) * perPage;
     const searchPat = new RegExp(queryData.query || "", "i");
 
     const pipelines: PipelineStage[] = [
@@ -41,26 +43,34 @@ export const getStaffs = async (req: Request, res: Response) => {
                 // maybe name here
               ],
             },
-            queryData.role
-              ? {
-                  role: {
-                    $eq: Types.ObjectId.createFromHexString(queryData.role),
-                  },
-                }
-              : {},
+            queryData["roles[]"] ? {
+              role: {
+                $in: queryData["roles[]"]?.map((role) => Types.ObjectId.createFromHexString(role)),
+              },
+            } : {},
+            queryData["employmentTypes[]"] ? {
+              employmentType: {
+                $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
+              },
+            } : {},
           ],
         },
+      },
+      {
+        $sort:{
+          [queryData.sort]: queryData.order === "asc" ? 1 : -1,
+        }
       },
       {
         $facet: {
           pagination: [
             { $count: "total" },
             { $addFields: { page: queryData.page } },
-            { $addFields: { perPage: queryData.perPage } },
+            { $addFields: { perPage: perPage } },
           ],
           data: [
             { $skip: skip },
-            { $limit: +queryData.perPage },
+            { $limit: +perPage },
             { $project: { __v: 0, password: 0 } },
           ],
         },
@@ -68,11 +78,16 @@ export const getStaffs = async (req: Request, res: Response) => {
     ];
 
     const [facet] = await User.aggregate(pipelines).exec();
-    const users = Array.isArray(facet?.data) ? facet.data : [];
+    const rawUsers = Array.isArray(facet?.data) ? (facet.data as mongoose.Document<unknown, {}, IUser>[]) : [];
+    const users = rawUsers.map((user) => {
+      user.id = (user._id as Types.ObjectId).toString();
+      delete user._id
+      return user;
+    });
     const pagination =
       Array.isArray(facet?.pagination) && facet.pagination[0]
         ? facet.pagination[0]
-        : { total: 0, page: queryData.page, perPage: queryData.perPage };
+        : { total: 0, page: queryData.page, perPage: perPage };
     return sendResponse({
       res,
       statusCode: 200,
@@ -83,6 +98,7 @@ export const getStaffs = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    console.log("🚀 ~ error:", error)
     return sendResponse({
       res,
       statusCode: 500,
