@@ -1,19 +1,88 @@
 import type { Request, Response } from "express";
-import Client from "../models/clientModel";
+import Client, { IClient } from "../models/clientModel";
 import { sendResponse } from "../utils/sendResponse";
 import { API_STATUS } from "../constants/apiStatus";
 import { CLIENT_ERROR_CODE, LOGIN_ERROR_CODE } from "../constants/errorCode";
-import { validateAddClient } from "../validations/clientValidation";
+import {
+  IQueryClient,
+  validateAddClient,
+  validateQueryClient,
+} from "../validations/clientValidation";
+import mongoose, { PipelineStage, Types } from "mongoose";
 
 export const getClients = async (req: Request, res: Response) => {
   try {
-    const clients = await Client.find({});
+    const { error, value: queryData } = validateQueryClient(req.query as unknown as IQueryClient);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: CLIENT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const perPage = Math.min(queryData.perPage, 100);
+    const skip = (+queryData.page - 1) * perPage;
+    const searchPat = new RegExp(queryData.query || "", "i");
+
+    const pipelines: PipelineStage[] = [
+      {
+        $match: {
+          $and: [
+            {
+              $or: [{ email: { $regex: searchPat } }],
+            },
+            queryData["statuses[]"]
+              ? {
+                  role: {
+                    $in: queryData["statuses[]"]?.map((status) =>
+                      Types.ObjectId.createFromHexString(status),
+                    ),
+                  },
+                }
+              : {},
+          ],
+        },
+      },
+      {
+        $sort: {
+          [queryData.sort]: queryData.order === "asc" ? 1 : -1,
+        },
+      },
+      {
+        $facet: {
+          pagination: [
+            { $count: "total" },
+            { $addFields: { page: queryData.page } },
+            { $addFields: { perPage: perPage } },
+          ],
+          data: [{ $skip: skip }, { $limit: +perPage }, { $project: { __v: 0, password: 0 } }],
+        },
+      },
+    ];
+
+    const [facet] = await Client.aggregate(pipelines).exec();
+    const rawClients = Array.isArray(facet?.data)
+      ? (facet.data as mongoose.Document<unknown, {}, IClient>[])
+      : [];
+    const clients = rawClients.map((client) => {
+      client.id = (client._id as Types.ObjectId).toString();
+      delete client._id;
+      return client;
+    });
+    const pagination =
+      Array.isArray(facet?.pagination) && facet.pagination[0]
+        ? facet.pagination[0]
+        : { total: 0, page: queryData.page, perPage: perPage };
+
     return sendResponse({
       res,
       statusCode: 200,
       status: API_STATUS.OK,
       data: {
-        clients,
+        data: clients,
+        pagination,
       },
     });
   } catch (error) {

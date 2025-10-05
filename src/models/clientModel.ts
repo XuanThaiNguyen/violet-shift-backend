@@ -1,5 +1,6 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+type ClientStatus = "active" | "inactive" | "prospect";
 export interface IClient extends Document {
   useSalutation: boolean;
   salutation: string;
@@ -18,7 +19,7 @@ export interface IClient extends Document {
   maritalStatus: string;
   nationality: string;
   languages: string[];
-  isProspect: boolean;
+  status: ClientStatus;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -98,8 +99,10 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
     languages: {
       type: [String],
     },
-    isProspect: {
-      type: Boolean,
+    status: {
+      type: String,
+      enum: ["active", "inactive", "prospect"],
+      default: "active",
     },
     isArchived: {
       type: Boolean,

@@ -1,3 +1,4 @@
+import { Client } from "./../models/clientModel";
 import Joi from "joi";
 
 interface IAddClient {
@@ -22,6 +23,17 @@ interface IAddClient {
   isArchived: boolean;
 }
 
+export type ClientStatus = "active" | "inactive" | "prospect";
+
+export interface IQueryClient {
+  query: string;
+  page: number;
+  perPage: number;
+  order: "asc" | "desc";
+  sort: "email" | "createdAt" | "joinedAt";
+  "statuses[]"?: ClientStatus[];
+}
+
 export const validateAddClient = (data: IAddClient) => {
   const schema = Joi.object<IAddClient>({
     displayName: Joi.string().required(),
@@ -43,6 +55,33 @@ export const validateAddClient = (data: IAddClient) => {
     languages: Joi.array().optional(),
     isProspect: Joi.boolean().optional(),
     isArchived: Joi.string().optional(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateQueryClient = (data: IQueryClient) => {
+  const schema = Joi.object<IQueryClient>({
+    query: Joi.string().optional().allow(""),
+    page: Joi.number().default(1),
+    perPage: Joi.number().default(10).max(100),
+    order: Joi.string().default("asc").valid("asc", "desc"),
+    sort: Joi.string().default("createdAt").valid("email", "createdAt", "joinedAt"),
+    // Accept roles as array, single string, or CSV string and always coerce to array
+    "statuses[]": Joi.alternatives()
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };
