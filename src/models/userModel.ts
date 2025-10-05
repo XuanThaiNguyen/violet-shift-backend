@@ -6,6 +6,7 @@ export interface IUser extends Document {
   lastName: string;
   middleName: string;
   preferredName: string;
+  mobileNumber: string;
   phoneNumber: string;
   employmentType: string;
   address: string;
@@ -17,10 +18,22 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   role: IRole;
+  avatar: string;
+  salutation: string;
+  hasSetProfile: boolean;
 }
 
 const UserSchema: Schema<IUser> = new Schema<IUser>(
   {
+    avatar: {
+      type: String,
+      trim: true,
+    },
+    salutation: {
+      type: String,
+      trim: true,
+      enum: ["Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They"],
+    },
     firstName: {
       type: String,
       trim: true,
@@ -47,6 +60,10 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       enum: ["full_time", "part_time", "contract", "casual", "other"],
       trim: true,
     },
+    hasSetProfile: {
+      type: Boolean,
+      default: false,
+    },
     joinedAt: {
       type: Date,
     },
@@ -57,10 +74,14 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       type: String,
       trim: true,
     },
-    phoneNumber: {
+    mobileNumber: {
       type: String,
       trim: true,
       index: true,
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
     },
     email: {
       type: String,

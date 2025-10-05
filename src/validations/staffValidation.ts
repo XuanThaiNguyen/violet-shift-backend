@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-export interface IQueryStaff {
+export interface IQueryStaffs {
   query: string;
   page: number;
   perPage: number;
@@ -9,18 +9,31 @@ export interface IQueryStaff {
   "roles[]"?: string[];
   "employmentTypes[]"?: string[];
 }
-
+export interface IQueryStaff {
+  staffId: string;
+}
 export interface IInviteStaff {
   email: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  preferredName: string;
   role: string;
+  salutation: string;
+  mobileNumber: string;
+  phoneNumber: string;
+  address: string;
+  gender: string;
+  birthdate: Date;
+  employmentType: string;
 }
 
 export interface IAcceptInvitation {
   token: string;
 }
 
-export const validateQueryStaff = (data: IQueryStaff) => {
-  const schema = Joi.object<IQueryStaff>({
+export const validateQueryStaffs = (data: IQueryStaffs) => {
+  const schema = Joi.object<IQueryStaffs>({
     query: Joi.string().optional().allow(""),
     page: Joi.number().default(1),
     perPage: Joi.number().default(10).max(100),
@@ -28,15 +41,15 @@ export const validateQueryStaff = (data: IQueryStaff) => {
     sort: Joi.string().default("createdAt").valid("email", "createdAt", "joinedAt"),
     // Accept roles as array, single string, or CSV string and always coerce to array
     "roles[]": Joi.alternatives()
-      .try(
-        Joi.array().items(Joi.string()).single(),
-        Joi.string()
-      )
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
       .custom((value) => {
         if (Array.isArray(value)) return value;
         if (typeof value === "string") {
           return value.includes(",")
-            ? value.split(",").map((v) => v.trim()).filter(Boolean)
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
             : [value];
         }
         return [];
@@ -44,15 +57,15 @@ export const validateQueryStaff = (data: IQueryStaff) => {
       .optional(),
     // Accept employmentTypes as array, single string, or CSV string and always coerce to array
     "employmentTypes[]": Joi.alternatives()
-      .try(
-        Joi.array().items(Joi.string()).single(),
-        Joi.string()
-      )
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
       .custom((value) => {
         if (Array.isArray(value)) return value;
         if (typeof value === "string") {
           return value.includes(",")
-            ? value.split(",").map((v) => v.trim()).filter(Boolean)
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
             : [value];
         }
         return [];
@@ -62,10 +75,30 @@ export const validateQueryStaff = (data: IQueryStaff) => {
   return schema.validate(data, { stripUnknown: true });
 };
 
+export const validateQueryStaff = (data: IQueryStaff) => {
+  const schema = Joi.object<IQueryStaff>({
+    staffId: Joi.string().required(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
 export const validateInviteStaff = (data: IInviteStaff) => {
   const schema = Joi.object<IInviteStaff>({
     email: Joi.string().email().required(),
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    middleName: Joi.string().optional(),
+    preferredName: Joi.string().optional(),
     role: Joi.string().required(),
+    salutation: Joi.string()
+      .valid("Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They")
+      .optional(),
+    mobileNumber: Joi.string().optional(),
+    phoneNumber: Joi.string().optional(),
+    address: Joi.string().optional(),
+    gender: Joi.string().optional(),
+    birthdate: Joi.date().optional(),
+    employmentType: Joi.string().required(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

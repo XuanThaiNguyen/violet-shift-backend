@@ -8,17 +8,18 @@ import {
   IQueryStaff,
   validateAcceptInvitation,
   IAcceptInvitation,
+  IQueryStaffs,
+  validateQueryStaffs,
 } from "../validations/staffValidation";
 import mongoose, { FilterQuery, PipelineStage, Types } from "mongoose";
-import MemberInvitation from "../models/memberInvitation";
+import MemberInvitation, { IMemberInvitation } from "../models/memberInvitation";
 import { nanoid } from "nanoid";
 import RedisService from "../services/redis";
 // nanoid is ESM-only; use dynamic import in CommonJS environment
 
 export const getStaffs = async (req: Request, res: Response) => {
   try {
-    console.log("🚀 ~ req.query:", req.query)
-    const { error, value: queryData } = validateQueryStaff(req.query as unknown as IQueryStaff);
+    const { error, value: queryData } = validateQueryStaffs(req.query as unknown as IQueryStaffs);
     if (error) {
       return sendResponse({
         res,
@@ -27,7 +28,7 @@ export const getStaffs = async (req: Request, res: Response) => {
         code: STAFF_ERROR_CODE.INVALID_REQUEST,
       });
     }
-    
+
     // Prepare pipeline
     const perPage = Math.min(queryData.perPage, 100);
     const skip = (+queryData.page - 1) * perPage;
@@ -43,23 +44,29 @@ export const getStaffs = async (req: Request, res: Response) => {
                 // maybe name here
               ],
             },
-            queryData["roles[]"] ? {
-              role: {
-                $in: queryData["roles[]"]?.map((role) => Types.ObjectId.createFromHexString(role)),
-              },
-            } : {},
-            queryData["employmentTypes[]"] ? {
-              employmentType: {
-                $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
-              },
-            } : {},
+            queryData["roles[]"]
+              ? {
+                  role: {
+                    $in: queryData["roles[]"]?.map((role) =>
+                      Types.ObjectId.createFromHexString(role),
+                    ),
+                  },
+                }
+              : {},
+            queryData["employmentTypes[]"]
+              ? {
+                  employmentType: {
+                    $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
+                  },
+                }
+              : {},
           ],
         },
       },
       {
-        $sort:{
+        $sort: {
           [queryData.sort]: queryData.order === "asc" ? 1 : -1,
-        }
+        },
       },
       {
         $facet: {
@@ -68,20 +75,18 @@ export const getStaffs = async (req: Request, res: Response) => {
             { $addFields: { page: queryData.page } },
             { $addFields: { perPage: perPage } },
           ],
-          data: [
-            { $skip: skip },
-            { $limit: +perPage },
-            { $project: { __v: 0, password: 0 } },
-          ],
+          data: [{ $skip: skip }, { $limit: +perPage }, { $project: { __v: 0, password: 0 } }],
         },
       },
     ];
 
     const [facet] = await User.aggregate(pipelines).exec();
-    const rawUsers = Array.isArray(facet?.data) ? (facet.data as mongoose.Document<unknown, {}, IUser>[]) : [];
+    const rawUsers = Array.isArray(facet?.data)
+      ? (facet.data as mongoose.Document<unknown, {}, IUser>[])
+      : [];
     const users = rawUsers.map((user) => {
       user.id = (user._id as Types.ObjectId).toString();
-      delete user._id
+      delete user._id;
       return user;
     });
     const pagination =
@@ -98,7 +103,45 @@ export const getStaffs = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error)
+    console.log("🚀 ~ error:", error);
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const getStaff = async (req: Request, res: Response) => {
+  try {
+    const { error, value: queryData } = validateQueryStaff(req.params as unknown as IQueryStaff);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: STAFF_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const user = await User.findById(queryData.staffId);
+    if (!user) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: STAFF_ERROR_CODE.USER_NOT_FOUND,
+      });
+    }
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "User fetched successfully",
+      data: user,
+    });
+  } catch (error) {
     return sendResponse({
       res,
       statusCode: 500,
@@ -121,36 +164,64 @@ export const inviteStaff = async (req: Request, res: Response) => {
     }
     const token = nanoid(10);
 
+    const session = await mongoose.startSession();
+    let userDoc: mongoose.Document<unknown, {}, IUser> | null = null;
+    let invitationDoc: mongoose.Document<unknown, {}, IMemberInvitation> | null = null;
     try {
-      const invitation = await MemberInvitation.findOneAndUpdate(
-        {
-          email: invitationData.email,
-          isAccepted: false,
-        },
-        {
-          $set: {
-            token: token,
-            role: invitationData.role,
+      await session.withTransaction(async () => {
+        invitationDoc = await MemberInvitation.findOneAndUpdate(
+          {
+            email: invitationData.email,
             isAccepted: false,
-            expiresAt: new Date(Date.now() + 3 * 60 * 60 * 24 * 1000),
-            acceptedAt: null,
           },
-        },
-        {
-          upsert: true,
-          new: true,
-          runValidators: true,
-        },
-      );
-      if (!invitation) {
-        return sendResponse({
-          res,
-          statusCode: 500,
-          message: "Internal server error",
-          code: STAFF_ERROR_CODE.INVITATION_NOT_CREATED,
-        });
-      }
+          {
+            $set: {
+              token: token,
+              role: invitationData.role,
+              isAccepted: false,
+              expiresAt: new Date(Date.now() + 3 * 60 * 60 * 24 * 1000),
+              acceptedAt: null,
+            },
+          },
+          {
+            upsert: true,
+            new: true,
+            runValidators: true,
+            session,
+          },
+        );
+        if (!invitationDoc) {
+          throw new Error("INVITATION_NOT_CREATED");
+        }
+
+        userDoc = await User.findOneAndUpdate(
+          { email: invitationData.email, joinedAt: null },
+          {
+            $set: {
+              role: invitationData.role,
+              email: invitationData.email,
+              salutation: invitationData.salutation,
+              mobileNumber: invitationData.mobileNumber,
+              phoneNumber: invitationData.phoneNumber,
+              address: invitationData.address,
+              gender: invitationData.gender,
+              birthdate: invitationData.birthdate,
+              employmentType: invitationData.employmentType,
+              preferredName: invitationData.preferredName,
+            },
+          },
+          { upsert: true, new: true, session },
+        );
+
+        if (!userDoc) {
+          throw new Error("USER_CREATE_FAILED");
+        }
+      });
     } catch (error: any) {
+      try {
+        await session.abortTransaction();
+      } catch {}
+
       // Check for MongoDB duplicate key error
       if (error.code === 11000 || error.message?.includes("duplicate key error")) {
         return sendResponse({
@@ -161,15 +232,35 @@ export const inviteStaff = async (req: Request, res: Response) => {
         });
       }
 
+      if (error instanceof Error && error.message === "INVITATION_NOT_CREATED") {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Failed to create invitation",
+          code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        });
+      }
+
+      if (error instanceof Error && error.message === "USER_CREATE_FAILED") {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Failed to create user",
+          code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        });
+      }
+
       return sendResponse({
         res,
         statusCode: 500,
         message: "Failed to create invitation",
         code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
       });
+    } finally {
+      session.endSession();
     }
 
-    const setUpUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
+    const setUpUrl = `${process.env.APP_URL}/auth/accept-invitation?token=${token}`;
     console.log("🚀 ~ setUpUrl:", setUpUrl);
 
     return sendResponse({
@@ -232,17 +323,12 @@ export const acceptInvitation = async (req: Request, res: Response) => {
 
         userDoc = await User.findOneAndUpdate(
           { email: invitationDoc.email },
-          {
-            $set: {
-              role: invitationDoc.role,
-              email: invitationDoc.email,
-            },
-          },
-          { upsert: true, new: true, session },
+          { $set: { joinedAt: new Date(), role: invitationDoc.role } },
+          { session },
         );
 
         if (!userDoc) {
-          throw new Error("USER_CREATE_FAILED");
+          throw new Error("USER_NOT_FOUND");
         }
       });
     } catch (error) {
