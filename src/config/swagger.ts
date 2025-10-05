@@ -20,7 +20,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: process.env["PREFIX"] || "/",
+      url: process.env.API_PREFIX || "/",
       description: "Base API prefix",
     },
   ],
