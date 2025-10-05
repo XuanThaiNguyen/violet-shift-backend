@@ -1,0 +1,87 @@
+import { Client } from "./../models/clientModel";
+import Joi from "joi";
+
+interface IAddClient {
+  useSalutation: boolean;
+  salutation: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  displayName: string;
+  gender: string;
+  email: string;
+  birthdate: Date;
+  address: string;
+  apartmentNumber: string;
+  mobileNumber: string;
+  phoneNumber: string;
+  religion: string;
+  maritalStatus: string;
+  nationality: string;
+  languages: string[];
+  isProspect: boolean;
+  isArchived: boolean;
+}
+
+export type ClientStatus = "active" | "inactive" | "prospect";
+
+export interface IQueryClient {
+  query: string;
+  page: number;
+  perPage: number;
+  order: "asc" | "desc";
+  sort: "email" | "createdAt" | "joinedAt";
+  "statuses[]"?: ClientStatus[];
+}
+
+export const validateAddClient = (data: IAddClient) => {
+  const schema = Joi.object<IAddClient>({
+    displayName: Joi.string().required(),
+    email: Joi.string().optional(),
+    useSalutation: Joi.boolean().optional(),
+    salutation: Joi.string().optional(),
+    firstName: Joi.string().optional(),
+    middleName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    gender: Joi.string().optional(),
+    birthdate: Joi.string().optional(),
+    address: Joi.string().optional(),
+    apartmentNumber: Joi.string().optional(),
+    mobileNumber: Joi.string().optional(),
+    phoneNumber: Joi.string().optional(),
+    religion: Joi.string().optional(),
+    maritalStatus: Joi.string().optional(),
+    nationality: Joi.string().optional(),
+    languages: Joi.array().optional(),
+    isProspect: Joi.boolean().optional(),
+    isArchived: Joi.string().optional(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateQueryClient = (data: IQueryClient) => {
+  const schema = Joi.object<IQueryClient>({
+    query: Joi.string().optional().allow(""),
+    page: Joi.number().default(1),
+    perPage: Joi.number().default(10).max(100),
+    order: Joi.string().default("asc").valid("asc", "desc"),
+    sort: Joi.string().default("createdAt").valid("email", "createdAt", "joinedAt"),
+    // Accept roles as array, single string, or CSV string and always coerce to array
+    "statuses[]": Joi.alternatives()
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
