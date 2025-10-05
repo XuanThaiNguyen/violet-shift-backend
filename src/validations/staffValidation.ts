@@ -26,8 +26,38 @@ export const validateQueryStaff = (data: IQueryStaff) => {
     perPage: Joi.number().default(10).max(100),
     order: Joi.string().default("asc").valid("asc", "desc"),
     sort: Joi.string().default("createdAt").valid("email", "createdAt", "joinedAt"),
-    "roles[]": Joi.array().items(Joi.string()).optional(),
-    "employmentTypes[]": Joi.array().items(Joi.string()).optional(),
+    // Accept roles as array, single string, or CSV string and always coerce to array
+    "roles[]": Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string()).single(),
+        Joi.string()
+      )
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value.split(",").map((v) => v.trim()).filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
+    // Accept employmentTypes as array, single string, or CSV string and always coerce to array
+    "employmentTypes[]": Joi.alternatives()
+      .try(
+        Joi.array().items(Joi.string()).single(),
+        Joi.string()
+      )
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value.split(",").map((v) => v.trim()).filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

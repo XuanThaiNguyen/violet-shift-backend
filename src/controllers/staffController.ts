@@ -17,6 +17,7 @@ import RedisService from "../services/redis";
 
 export const getStaffs = async (req: Request, res: Response) => {
   try {
+    console.log("🚀 ~ req.query:", req.query)
     const { error, value: queryData } = validateQueryStaff(req.query as unknown as IQueryStaff);
     if (error) {
       return sendResponse({
