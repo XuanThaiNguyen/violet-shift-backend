@@ -26,7 +26,7 @@ export const getStaffs = async (req: Request, res: Response) => {
         code: STAFF_ERROR_CODE.INVALID_REQUEST,
       });
     }
-
+    
     // Prepare pipeline
     const perPage = Math.min(queryData.perPage, 100);
     const skip = (+queryData.page - 1) * perPage;
@@ -42,20 +42,16 @@ export const getStaffs = async (req: Request, res: Response) => {
                 // maybe name here
               ],
             },
-            queryData.roles
-              ? {
-                  role: {
-                    $in: queryData.roles?.map((role) => Types.ObjectId.createFromHexString(role)),
-                  },
-                }
-              : {},
-            queryData.employmentTypes
-              ? {
-                  employmentType: {
-                    $in: queryData.employmentTypes?.map((employmentType) => employmentType),
-                  },
-                }
-              : {},
+            queryData["roles[]"] ? {
+              role: {
+                $in: queryData["roles[]"]?.map((role) => Types.ObjectId.createFromHexString(role)),
+              },
+            } : {},
+            queryData["employmentTypes[]"] ? {
+              employmentType: {
+                $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
+              },
+            } : {},
           ],
         },
       },
@@ -101,6 +97,7 @@ export const getStaffs = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    console.log("🚀 ~ error:", error)
     return sendResponse({
       res,
       statusCode: 500,
