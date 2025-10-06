@@ -141,7 +141,7 @@ export const validateUpdateStaff = (data: IUpdateStaff) => {
     phoneNumber: Joi.string().optional().allow(""),
     address: Joi.string().optional().allow(""),
     gender: Joi.string().optional(),
-    birthdate: Joi.date().optional().allow(""),
+    birthdate: Joi.date().optional(),
     employmentType: Joi.string().optional(),
   });
   return schema.validate(data, { stripUnknown: true });

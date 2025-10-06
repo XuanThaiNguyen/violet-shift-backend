@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { isInRoles, requireAuth } from "../middleware/authMiddleware";
-import { acceptInvitation, getStaffs, inviteStaff } from "../controllers/staffController";
+import { acceptInvitation, getStaffs, inviteStaff, updateStaff } from "../controllers/staffController";
 import { ROLE_IDS } from "../constants/roles";
 
 const router = Router();
@@ -123,9 +123,46 @@ router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs
  *             properties:
  *               email:
  *                 type: string
+ *                 required: true
  *                 example: john.doe@example.com
+ *               firstName:
+ *                 type: string
+ *                 required: true
+ *                 example: John Doe
+ *               lastName:
+ *                 type: string
+ *                 required: true
+ *                 example: Doe
+ *               middleName:
+ *                 type: string
+ *                 example: Doe
+ *               preferredName:
+ *                 type: string
+ *                 example: Doe
+ *               salutation:
+ *                 type: string
+ *                 example: Mr
+ *               mobileNumber:
+ *                 type: string
+ *                 example: 1234567890
+ *               phoneNumber:
+ *                 type: string
+ *                 example: 1234567890
+ *               address:
+ *                 type: string
+ *                 example: 1234567890
+ *               gender:
+ *                 type: string
+ *                 example: male
+ *               birthdate:
+ *                 type: string
+ *                 example: 2021-01-01
+ *               employmentType:
+ *                 type: string
+ *                 example: full_time
  *               role:
  *                 type: string
+ *                 required: true
  *                 example: 66fe5a3e9a0c8a0012a00003
  *     responses:
  *       200:
@@ -174,5 +211,119 @@ router.post("/invite", requireAuth, isInRoles([ROLE_IDS.ADMIN]), inviteStaff);
  *                   example: 1234567890
  */
 router.get("/accept-invitation", acceptInvitation);
+
+/**
+ * @swagger
+ * /staffs/{staffId}:
+ *   patch:
+ *     tags:
+ *       - Staffs
+ *     summary: Update staff
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: staffId
+ *         in: path
+ *         description: Staff ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               staffId:
+ *                 type: string
+ *                 example: 1234567890
+ *               firstName:
+ *                 type: string
+ *                 example: John Doe
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               middleName:
+ *                 type: string
+ *                 example: Doe
+ *               preferredName:
+ *                 type: string
+ *                 example: Doe
+ *               role:
+ *                 type: string
+ *                 example: 1234567890
+ *               salutation:
+ *                 type: string
+ *                 example: Mr
+ *               mobileNumber:
+ *                 type: string
+ *                 example: 1234567890
+ *               phoneNumber:
+ *                 type: string
+ *                 example: 1234567890
+ *               address:
+ *                 type: string
+ *                 example: 1234567890
+ *               gender:
+ *                 type: string
+ *                 example: male
+ *               birthdate:
+ *                 type: string
+ *                 example: 2021-01-01
+ *               employmentType:
+ *                 type: string
+ *                 example: full_time
+ *     responses:
+ *       200:
+ *         description: Update staff
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 1234567890
+ *                     firstName:
+ *                       type: string
+ *                       example: John Doe
+ *                     lastName:
+ *                       type: string
+ *                       example: Doe
+ *                     middleName:
+ *                       type: string
+ *                       example: Doe
+ *                     preferredName:
+ *                       type: string
+ *                       example: Doe
+ *                     role:
+ *                       type: string
+ *                       example: 1234567890
+ *                     salutation:
+ *                       type: string
+ *                       example: Mr
+ *                     mobileNumber:
+ *                       type: string
+ *                       example: 1234567890
+ *                     phoneNumber:
+ *                       type: string
+ *                       example: 1234567890
+ *                     address:
+ *                       type: string
+ *                       example: 1234567890
+ *                     gender:
+ *                       type: string
+ *                       example: male
+ *                     birthdate:
+ *                       type: string
+ *                       example: 2021-01-01
+ *                     employmentType:
+ *                       type: string
+ *                       example: full_time
+ */
+router.patch("/:staffId", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), updateStaff);
 
 export default router;
