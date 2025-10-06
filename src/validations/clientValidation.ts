@@ -1,5 +1,7 @@
-import { Client } from "./../models/clientModel";
 import Joi from "joi";
+
+export type ClientStatus = "active" | "inactive" | "prospect";
+export type AgeStatus = "adult" | "children";
 
 interface IAddClient {
   useSalutation: boolean;
@@ -19,25 +21,14 @@ interface IAddClient {
   maritalStatus: string;
   nationality: string;
   languages: string[];
-  isProspect: boolean;
+  status: ClientStatus;
   isArchived: boolean;
-}
-
-export type ClientStatus = "active" | "inactive" | "prospect";
-
-export interface IQueryClient {
-  query: string;
-  page: number;
-  perPage: number;
-  order: "asc" | "desc";
-  sort: "email" | "createdAt" | "joinedAt";
-  "statuses[]"?: ClientStatus[];
 }
 
 export const validateAddClient = (data: IAddClient) => {
   const schema = Joi.object<IAddClient>({
     displayName: Joi.string().required(),
-    email: Joi.string().optional(),
+    email: Joi.string().required(),
     useSalutation: Joi.boolean().optional(),
     salutation: Joi.string().optional(),
     firstName: Joi.string().optional(),
@@ -53,11 +44,21 @@ export const validateAddClient = (data: IAddClient) => {
     maritalStatus: Joi.string().optional(),
     nationality: Joi.string().optional(),
     languages: Joi.array().optional(),
-    isProspect: Joi.boolean().optional(),
+    status: Joi.string().optional(),
     isArchived: Joi.string().optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };
+
+export interface IQueryClient {
+  query: string;
+  page: number;
+  perPage: number;
+  order: "asc" | "desc";
+  sort: "email" | "createdAt" | "joinedAt";
+  "statusTypes[]"?: string[];
+  "ageTypes[]"?: string[];
+}
 
 export const validateQueryClient = (data: IQueryClient) => {
   const schema = Joi.object<IQueryClient>({
@@ -67,7 +68,22 @@ export const validateQueryClient = (data: IQueryClient) => {
     order: Joi.string().default("asc").valid("asc", "desc"),
     sort: Joi.string().default("createdAt").valid("email", "createdAt", "joinedAt"),
     // Accept roles as array, single string, or CSV string and always coerce to array
-    "statuses[]": Joi.alternatives()
+    "ageTypes[]": Joi.alternatives()
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
+    "statusTypes[]": Joi.alternatives()
       .try(Joi.array().items(Joi.string()).single(), Joi.string())
       .custom((value) => {
         if (Array.isArray(value)) return value;

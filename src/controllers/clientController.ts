@@ -33,12 +33,10 @@ export const getClients = async (req: Request, res: Response) => {
             {
               $or: [{ email: { $regex: searchPat } }],
             },
-            queryData["statuses[]"]
+            queryData["statusTypes[]"]
               ? {
-                  role: {
-                    $in: queryData["statuses[]"]?.map((status) =>
-                      Types.ObjectId.createFromHexString(status),
-                    ),
+                  status: {
+                    $in: queryData["statusTypes[]"]?.map((status) => status),
                   },
                 }
               : {},
@@ -108,11 +106,14 @@ export const getClient = async (req: Request, res: Response) => {
       });
     }
 
+    const clientData = client.toObject();
+    const { _id, ...rest } = clientData;
+
     return sendResponse({
       res,
       statusCode: 200,
       status: API_STATUS.OK,
-      data: { client },
+      data: { id: _id, ...rest },
     });
   } catch (error) {
     return sendResponse({
@@ -131,9 +132,11 @@ export const addClient = async (req: Request, res: Response) => {
       return sendResponse({
         res,
         statusCode: 400,
+        code: CLIENT_ERROR_CODE.INVALID_REQUEST,
         message: error.details[0].message,
       });
     }
+
     const existingClient = await Client.findOne({ email: clientData.email });
     if (existingClient) {
       return sendResponse({
@@ -145,11 +148,13 @@ export const addClient = async (req: Request, res: Response) => {
     }
 
     const newClient = await Client.create(clientData);
+    const { _id, ...rest } = newClient.toObject();
+
     return sendResponse({
       res,
       statusCode: 201,
       status: API_STATUS.OK,
-      data: { client: newClient },
+      data: { id: _id, ...rest },
     });
   } catch (err) {
     return sendResponse({
@@ -190,11 +195,21 @@ export const updateClient = async (req: Request, res: Response) => {
     }
 
     const updatedClient = await Client.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updatedClient) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        code: CLIENT_ERROR_CODE.CLIENT_NOT_FOUND,
+        message: "Client not found",
+      });
+    }
+
+    const { _id, ...rest } = updatedClient.toObject();
     return sendResponse({
       res,
       statusCode: 200,
       status: API_STATUS.OK,
-      data: { client: updatedClient },
+      data: { id: _id, ...rest },
       message: "Client updated successfully",
     });
   } catch (error) {

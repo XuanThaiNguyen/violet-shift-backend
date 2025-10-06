@@ -86,6 +86,7 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
       unique: true,
       lowercase: true,
       index: true,
+      required: true,
     },
     maritalStatus: {
       type: String,
@@ -103,6 +104,7 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
       type: String,
       enum: ["active", "inactive", "prospect"],
       default: "active",
+      trim: true,
     },
     isArchived: {
       type: Boolean,
