@@ -32,6 +32,8 @@ export const getClients = async (req: Request, res: Response) => {
       {
         $match: {
           $and: [
+            //getClients only get clients that are not archived
+            { isArchived: { $ne: true } },
             {
               $or: [{ email: { $regex: searchPat } }],
             },
@@ -42,6 +44,84 @@ export const getClients = async (req: Request, res: Response) => {
                   },
                 }
               : {},
+          ],
+        },
+      },
+      {
+        $sort: {
+          [queryData.sort]: queryData.order === "asc" ? 1 : -1,
+        },
+      },
+      {
+        $facet: {
+          pagination: [
+            { $count: "total" },
+            { $addFields: { page: queryData.page } },
+            { $addFields: { perPage: perPage } },
+          ],
+          data: [{ $skip: skip }, { $limit: +perPage }, { $project: { __v: 0, password: 0 } }],
+        },
+      },
+    ];
+
+    const [facet] = await Client.aggregate(pipelines).exec();
+    const rawClients = Array.isArray(facet?.data)
+      ? (facet.data as mongoose.Document<unknown, {}, IClient>[])
+      : [];
+    const clients = rawClients.map((client) => {
+      client.id = (client._id as Types.ObjectId).toString();
+      delete client._id;
+      return client;
+    });
+    const pagination =
+      Array.isArray(facet?.pagination) && facet.pagination[0]
+        ? facet.pagination[0]
+        : { total: 0, page: queryData.page, perPage: perPage };
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      data: {
+        data: clients,
+        pagination,
+      },
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      code: LOGIN_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getArchivedClients = async (req: Request, res: Response) => {
+  try {
+    const { error, value: queryData } = validateQueryClient(req.query as unknown as IQueryClient);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: CLIENT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const perPage = Math.min(queryData.perPage, 100);
+    const skip = (+queryData.page - 1) * perPage;
+    const searchPat = new RegExp(queryData.query || "", "i");
+
+    const pipelines: PipelineStage[] = [
+      {
+        $match: {
+          $and: [
+            //getClients only get clients that are not archived
+            { isArchived: { $ne: false } },
+            {
+              $or: [{ email: { $regex: searchPat } }],
+            },
           ],
         },
       },

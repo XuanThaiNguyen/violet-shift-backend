@@ -6,6 +6,7 @@ import {
   getClients,
   changeStatusClient,
   updateClient,
+  getArchivedClients,
 } from "../controllers/clientController";
 import { isInRoles, requireAuth } from "../middleware/authMiddleware";
 import { ROLE_IDS } from "../constants/roles";
@@ -13,6 +14,8 @@ import { ROLE_IDS } from "../constants/roles";
 const router = Router();
 
 router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getClients);
+
+router.get("/archived", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getArchivedClients);
 
 router.get("/:id", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getClient);
 
