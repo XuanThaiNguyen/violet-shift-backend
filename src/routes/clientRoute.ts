@@ -1,9 +1,10 @@
 import { Router } from "express";
 import {
   addClient,
-  deleteClient,
+  archiveClient,
   getClient,
   getClients,
+  changeStatusClient,
   updateClient,
 } from "../controllers/clientController";
 import { isInRoles, requireAuth } from "../middleware/authMiddleware";
@@ -19,6 +20,13 @@ router.post("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), addClien
 
 router.put("/:id", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), updateClient);
 
-router.delete("/:id", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), deleteClient);
+router.post("/archive", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), archiveClient);
+
+router.post(
+  "/change-status",
+  requireAuth,
+  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]),
+  changeStatusClient,
+);
 
 export default router;

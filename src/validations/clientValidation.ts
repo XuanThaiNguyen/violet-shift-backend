@@ -60,6 +60,16 @@ export interface IQueryClient {
   "ageTypes[]"?: string[];
 }
 
+export interface IArchiveClient {
+  id: string;
+  isArchived: boolean;
+}
+
+export interface IChangeStatusClient {
+  id: string;
+  status: string;
+}
+
 export const validateQueryClient = (data: IQueryClient) => {
   const schema = Joi.object<IQueryClient>({
     query: Joi.string().optional().allow(""),
@@ -98,6 +108,22 @@ export const validateQueryClient = (data: IQueryClient) => {
         return [];
       })
       .optional(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateArchiveClient = (data: IArchiveClient) => {
+  const schema = Joi.object<IArchiveClient>({
+    id: Joi.string().required(),
+    isArchived: Joi.boolean().required(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateChangeStatusClient = (data: IChangeStatusClient) => {
+  const schema = Joi.object<IChangeStatusClient>({
+    id: Joi.string().required(),
+    status: Joi.string().valid("active", "inactive", "prospect").required(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

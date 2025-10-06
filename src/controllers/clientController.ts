@@ -1,14 +1,16 @@
 import type { Request, Response } from "express";
-import Client, { IClient } from "../models/clientModel";
-import { sendResponse } from "../utils/sendResponse";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import { API_STATUS } from "../constants/apiStatus";
 import { CLIENT_ERROR_CODE, LOGIN_ERROR_CODE } from "../constants/errorCode";
+import Client, { IClient } from "../models/clientModel";
+import { sendResponse } from "../utils/sendResponse";
 import {
   IQueryClient,
   validateAddClient,
+  validateArchiveClient,
+  validateChangeStatusClient,
   validateQueryClient,
 } from "../validations/clientValidation";
-import mongoose, { PipelineStage, Types } from "mongoose";
 
 export const getClients = async (req: Request, res: Response) => {
   try {
@@ -222,12 +224,24 @@ export const updateClient = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteClient = async (req: Request, res: Response) => {
+export const archiveClient = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { error, value: clientData } = validateArchiveClient(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        code: CLIENT_ERROR_CODE.INVALID_REQUEST,
+        message: error.details[0].message,
+      });
+    }
 
-    const existingClient = await Client.findById(id);
-    if (!existingClient) {
+    const updatedClient = await Client.findByIdAndUpdate(
+      clientData.id,
+      { isArchived: clientData.isArchived },
+      { new: true },
+    );
+    if (!updatedClient) {
       return sendResponse({
         res,
         statusCode: 404,
@@ -236,15 +250,59 @@ export const deleteClient = async (req: Request, res: Response) => {
       });
     }
 
-    await Client.findByIdAndDelete(id);
-
+    const { _id, ...rest } = updatedClient.toObject();
     return sendResponse({
       res,
       statusCode: 200,
       status: API_STATUS.OK,
-      message: "Client deleted successfully",
+      data: { id: _id, ...rest },
     });
   } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      code: LOGIN_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const changeStatusClient = async (req: Request, res: Response) => {
+  try {
+    const { error, value: clientData } = validateChangeStatusClient(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        code: CLIENT_ERROR_CODE.INVALID_REQUEST,
+        message: error.details[0].message,
+      });
+    }
+
+    const updatedClient = await Client.findByIdAndUpdate(
+      clientData.id,
+      { status: clientData.status },
+      { new: true },
+    );
+    if (!updatedClient) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        code: CLIENT_ERROR_CODE.CLIENT_NOT_FOUND,
+        message: "Client not found",
+      });
+    }
+
+    const { _id, ...rest } = updatedClient.toObject();
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      data: { id: _id, ...rest },
+    });
+  } catch (error) {
+    console.log("errorerror", error);
+
     return sendResponse({
       res,
       statusCode: 500,
