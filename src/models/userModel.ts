@@ -32,7 +32,7 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     salutation: {
       type: String,
       trim: true,
-      enum: ["Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They"],
+      enum: ["Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They", ""],
     },
     firstName: {
       type: String,

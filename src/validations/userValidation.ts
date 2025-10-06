@@ -1,7 +1,9 @@
 import Joi from "joi";
 
 interface IUpdateUser {
+  avatar: string;
   address: string;
+  salutation: string;
   firstName: string;
   middleName: string;
   lastName: string;
@@ -9,19 +11,20 @@ interface IUpdateUser {
   gender: string;
   birthdate: string;
   phone: string;
-  email: string;
 }
 
 export const validateUpdateUser = (data: IUpdateUser) => {
   const schema = Joi.object<IUpdateUser>({
-    address: Joi.string().optional(),
-    firstName: Joi.string().required(),
-    middleName: Joi.string().optional(),
-    lastName: Joi.string().required(),
-    prefferedName: Joi.string().optional(),
+    avatar: Joi.string().optional().allow(""),
+    salutation: Joi.string().optional().allow(""),
+    address: Joi.string().optional().allow(""),
+    firstName: Joi.string().optional(),
+    middleName: Joi.string().optional().allow(""),
+    lastName: Joi.string().optional(),
+    prefferedName: Joi.string().optional().allow(""),
     gender: Joi.string().optional(),
     birthdate: Joi.date().optional(),
-    phone: Joi.string().optional(),
+    phone: Joi.string().optional().allow(""),
   });
   return schema.validate(data, { stripUnknown: true });
 };
