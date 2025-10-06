@@ -40,9 +40,16 @@ export const updateMe = async (req: Request, res: Response) => {
   try {
     const { error, value: userData } = validateUpdateUser(req.body);
     userData.id = (req as AuthRequest).userId;
-    const updatedUser = await User.findOneAndUpdate({ _id: userData.id }, userData, {
-      projection: { password: 0 },
-    });
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userData.id },
+      {
+        ...userData,
+        hasSetProfile: true,
+      },
+      {
+        projection: { password: 0 },
+      },
+    );
     if (!updatedUser) {
       return sendResponse({
         res,

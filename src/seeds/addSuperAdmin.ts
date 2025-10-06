@@ -34,6 +34,8 @@ async function run(): Promise<void> {
         email: adminEmail,
         password: hashed,
         role: ROLE_IDS.ADMIN,
+        employmentType: "full_time",
+        joinedAt: new Date(),
       });
       console.log("Admin user created.");
     } else {

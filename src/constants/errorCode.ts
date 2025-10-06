@@ -15,11 +15,12 @@ export const ME_ERROR_CODE = {
 
 export const STAFF_ERROR_CODE = {
   INVALID_REQUEST: 3000, // invalid request
-  USER_JOINED_ALREADY: 3001, // user joined already
-  INVITATION_NOT_CREATED: 3002, // invitation not created
-  INVALID_INVITATION_TOKEN: 3003, // invalid invitation token
-  INVITATION_EXPIRED: 3004, // invitation expired
-  INTERNAL_SERVER_ERROR: 3005,
+  USER_NOT_FOUND: 3001, // user not found
+  USER_JOINED_ALREADY: 3002, // user joined already
+  INVITATION_NOT_CREATED: 3003, // invitation not created
+  INVALID_INVITATION_TOKEN: 3004, // invalid invitation token
+  INVITATION_EXPIRED: 3005, // invitation expired
+  INTERNAL_SERVER_ERROR: 3006,
 };
 
 export const CLIENT_ERROR_CODE = {
