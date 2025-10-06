@@ -13,6 +13,7 @@ export interface IQueryStaff {
   staffId: string;
 }
 export interface IInviteStaff {
+  avatar: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -31,6 +32,23 @@ export interface IInviteStaff {
 export interface IAcceptInvitation {
   token: string;
 }
+
+export interface IUpdateStaff {
+  avatar: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  preferredName: string;
+  role: string;
+  salutation: string;
+  mobileNumber: string;
+  phoneNumber: string;
+  address: string;
+  gender: string;
+  birthdate: Date;
+  employmentType: string;
+}
+
 
 export const validateQueryStaffs = (data: IQueryStaffs) => {
   const schema = Joi.object<IQueryStaffs>({
@@ -106,6 +124,25 @@ export const validateInviteStaff = (data: IInviteStaff) => {
 export const validateAcceptInvitation = (data: IAcceptInvitation) => {
   const schema = Joi.object<IAcceptInvitation>({
     token: Joi.string().required(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateUpdateStaff = (data: IUpdateStaff) => {
+  const schema = Joi.object<IUpdateStaff>({
+    avatar: Joi.string().optional().allow(""),
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    middleName: Joi.string().optional().allow(""),
+    preferredName: Joi.string().optional().allow(""),
+    role: Joi.string().optional(),
+    salutation: Joi.string().optional().allow(""),
+    mobileNumber: Joi.string().optional().allow(""),
+    phoneNumber: Joi.string().optional().allow(""),
+    address: Joi.string().optional().allow(""),
+    gender: Joi.string().optional(),
+    birthdate: Joi.date().optional().allow(""),
+    employmentType: Joi.string().optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

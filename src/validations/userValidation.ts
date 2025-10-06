@@ -1,6 +1,7 @@
 import Joi from "joi";
 
 interface IUpdateUser {
+  avatar: string;
   address: string;
   firstName: string;
   middleName: string;
@@ -14,6 +15,7 @@ interface IUpdateUser {
 
 export const validateUpdateUser = (data: IUpdateUser) => {
   const schema = Joi.object<IUpdateUser>({
+    avatar: Joi.string().optional(),
     address: Joi.string().optional(),
     firstName: Joi.string().required(),
     middleName: Joi.string().optional(),

@@ -10,6 +10,7 @@ import {
   IAcceptInvitation,
   IQueryStaffs,
   validateQueryStaffs,
+  validateUpdateStaff,
 } from "../validations/staffValidation";
 import mongoose, { FilterQuery, PipelineStage, Types } from "mongoose";
 import MemberInvitation, { IMemberInvitation } from "../models/memberInvitation";
@@ -140,6 +141,45 @@ export const getStaff = async (req: Request, res: Response) => {
       statusCode: 200,
       message: "User fetched successfully",
       data: user,
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const updateStaff = async (req: Request, res: Response) => {
+  try {
+    const staffId = req.params.staffId as string;
+    const { error, value: staffData } = validateUpdateStaff(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: STAFF_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const user = await User.findOneAndUpdate({ _id: staffId }, { $set: staffData }, { new: true });
+    if (!user) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: STAFF_ERROR_CODE.USER_NOT_FOUND,
+      });
+    }
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "User updated successfully",
+      data: user.toObject({ virtuals: true }),
     });
   } catch (error) {
     return sendResponse({
