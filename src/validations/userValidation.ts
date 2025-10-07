@@ -7,10 +7,11 @@ interface IUpdateUser {
   firstName: string;
   middleName: string;
   lastName: string;
-  prefferedName: string;
+  preferredName: string;
   gender: string;
   birthdate: string;
-  phone: string;
+  phoneNumber: string;
+  mobileNumber: string;
 }
 
 export const validateUpdateUser = (data: IUpdateUser) => {
@@ -21,10 +22,11 @@ export const validateUpdateUser = (data: IUpdateUser) => {
     firstName: Joi.string().optional(),
     middleName: Joi.string().optional().allow(""),
     lastName: Joi.string().optional(),
-    prefferedName: Joi.string().optional().allow(""),
+    preferredName: Joi.string().optional().allow(""),
     gender: Joi.string().optional(),
     birthdate: Joi.date().optional(),
-    phone: Joi.string().optional().allow(""),
+    phoneNumber: Joi.string().optional().allow(""),
+    mobileNumber: Joi.string().optional().allow(""),
   });
   return schema.validate(data, { stripUnknown: true });
 };

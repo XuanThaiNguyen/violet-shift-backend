@@ -79,7 +79,7 @@ router.get("/", getMe);
  *               lastName:
  *                 type: string
  *                 example: Doe
- *               prefferedName:
+ *               preferredName:
  *                 type: string
  *                 example: Preferred Name
  *               gender:

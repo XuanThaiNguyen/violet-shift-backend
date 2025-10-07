@@ -248,6 +248,9 @@ export const inviteStaff = async (req: Request, res: Response) => {
               birthdate: invitationData.birthdate,
               employmentType: invitationData.employmentType,
               preferredName: invitationData.preferredName,
+              firstName: invitationData.firstName,
+              lastName: invitationData.lastName,
+              middleName: invitationData.middleName,
             },
           },
           { upsert: true, new: true, session },
@@ -400,7 +403,7 @@ export const acceptInvitation = async (req: Request, res: Response) => {
 
     const redis = RedisService.getInstance();
     // for password setup, the token will be deleted after 0.5 hours
-    redis.setex(`token:auth_temp:${tempToken}`, 60 * 60 * 0.5, userDoc.email);
+    redis.setex(`token:auth_temp:${tempToken}`, 60 * 60 * 0.5, userDoc._id.toString());
 
     return sendResponse({
       res,
