@@ -17,23 +17,23 @@ async function run(): Promise<void> {
       }
     }
 
-    const { displayName } = data;
-    if (!displayName) {
-      throw new Error(`Usage: yarn seed:client displayName="John Doe"`);
+    const { preferredName } = data;
+    if (!preferredName) {
+      throw new Error(`Usage: yarn seed:client preferredName="John Doe"`);
     }
 
-    const existing = await Client.findOne({ displayName });
+    const existing = await Client.findOne({ preferredName });
 
     if (!existing) {
       await Client.create({
-        displayName,
+        preferredName,
         ...data,
       });
-      console.log(`✅ Client "${displayName}" created.`);
+      console.log(`✅ Client "${preferredName}" created.`);
     } else {
       Object.assign(existing, data);
       await existing.save();
-      console.log(`🔄 Client "${displayName}" updated.`);
+      console.log(`🔄 Client "${preferredName}" updated.`);
     }
   } catch (err) {
     console.error("Seed failed:", err);
