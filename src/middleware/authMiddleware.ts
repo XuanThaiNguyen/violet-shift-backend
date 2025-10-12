@@ -54,3 +54,33 @@ export const isInRoles = (roles: string[]): Handler => {
     next();
   };
 };
+
+type CheckMyResource = (req: Request) => boolean | Promise<boolean>;
+export const isInRolesOrSelf = (roles: string[], checkMyResource: CheckMyResource): Handler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const user = await User.findById((req as AuthRequest).userId);
+    if (!user) {
+      return sendResponse({
+        res,
+        statusCode: 403,
+        message: "Unauthorized",
+        code: AUTH_ERROR_CODE.UNAUTHORIZED,
+      });
+    }
+    if (roles.includes(user?.role.toString() as string)) {
+      next();
+    } else {
+      const isMine = await checkMyResource(req);
+      if (isMine) {
+        next();
+      } else {
+        return sendResponse({
+          res,
+          statusCode: 403,
+          message: "Unauthorized",
+          code: AUTH_ERROR_CODE.UNAUTHORIZED,
+        });
+      }
+    }
+  };
+};

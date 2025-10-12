@@ -27,9 +27,12 @@
   },
   "homepage": "https://github.com/XuanThaiNguyen/violet-shift-backend#readme",
   "dependencies": {
+    "@breejs/later": "^4.2.0",
     "@types/node": "^24.6.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
+    "cron": "^4.3.3",
+    "cron-parser": "^5.4.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
@@ -48,6 +51,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/breejs__later": "^4.1.5",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/ioredis": "^4.28.10",
