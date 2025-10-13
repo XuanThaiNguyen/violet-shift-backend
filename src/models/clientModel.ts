@@ -2,12 +2,11 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 
 type ClientStatus = "active" | "inactive" | "prospect";
 export interface IClient extends Document {
-  useSalutation: boolean;
   salutation: string;
   firstName: string;
   lastName: string;
   middleName: string;
-  displayName: string;
+  preferredName: string;
   gender: string;
   email: string;
   birthdate: Date;
@@ -27,31 +26,26 @@ export interface IClient extends Document {
 
 const ClientSchema: Schema<IClient> = new Schema<IClient>(
   {
-    useSalutation: {
-      type: Boolean,
-      default: false,
-    },
     salutation: {
       type: String,
-      enum: ["mr", "mrs", "miss", "ms", "mx", "doctor", "them", "they"],
       trim: true,
-      required: function () {
-        return this.useSalutation === true;
-      },
+      enum: ["Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They", ""],
     },
     firstName: {
       type: String,
+      trim: true,
     },
     lastName: {
       type: String,
+      trim: true,
     },
     middleName: {
       type: String,
+      trim: true,
     },
-    displayName: {
+    preferredName: {
       type: String,
       trim: true,
-      required: true,
     },
     gender: {
       type: String,
@@ -105,6 +99,7 @@ const ClientSchema: Schema<IClient> = new Schema<IClient>(
       enum: ["active", "inactive", "prospect"],
       default: "active",
       trim: true,
+      required: true,
     },
     isArchived: {
       type: Boolean,

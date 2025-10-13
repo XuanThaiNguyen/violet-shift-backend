@@ -4,12 +4,11 @@ export type ClientStatus = "active" | "inactive" | "prospect";
 export type AgeStatus = "adult" | "children";
 
 interface IAddClient {
-  useSalutation: boolean;
   salutation: string;
   firstName: string;
   lastName: string;
   middleName: string;
-  displayName: string;
+  preferredName: string;
   gender: string;
   email: string;
   birthdate: Date;
@@ -27,13 +26,14 @@ interface IAddClient {
 
 export const validateAddClient = (data: IAddClient) => {
   const schema = Joi.object<IAddClient>({
-    displayName: Joi.string().required(),
+    preferredName: Joi.string().optional(),
     email: Joi.string().required(),
-    useSalutation: Joi.boolean().optional(),
-    salutation: Joi.string().optional(),
-    firstName: Joi.string().optional(),
+    salutation: Joi.string()
+      .valid("Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof", "Them", "They")
+      .optional(),
+    firstName: Joi.string().required(),
     middleName: Joi.string().optional(),
-    lastName: Joi.string().optional(),
+    lastName: Joi.string().required(),
     gender: Joi.string().optional(),
     birthdate: Joi.string().optional(),
     address: Joi.string().optional(),
@@ -44,7 +44,7 @@ export const validateAddClient = (data: IAddClient) => {
     maritalStatus: Joi.string().optional(),
     nationality: Joi.string().optional(),
     languages: Joi.array().optional(),
-    status: Joi.string().optional(),
+    status: Joi.string().required(),
     isArchived: Joi.string().optional(),
   });
   return schema.validate(data, { stripUnknown: true });
