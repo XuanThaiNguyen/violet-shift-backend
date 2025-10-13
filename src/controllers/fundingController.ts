@@ -1,8 +1,9 @@
 import type { Request, Response } from "express";
-import { validateAddFunding, validateUpdateFunding } from "../validations/fundingValidation";
-import { sendResponse } from "../utils/sendResponse";
+import mongoose from "mongoose";
 import { FUNDING_ERROR_CODE } from "../constants/errorCode";
 import { Funding } from "../models/fundingModel";
+import { sendResponse } from "../utils/sendResponse";
+import { validateAddFunding, validateUpdateFunding } from "../validations/fundingValidation";
 
 export const addFunding = async (req: Request, res: Response) => {
   try {
@@ -53,32 +54,6 @@ export const addFunding = async (req: Request, res: Response) => {
   }
 };
 
-export const getFundings = async (req: Request, res: Response) => {
-  try {
-    const fundings = await Funding.find().lean();
-    const formatFundings = fundings.map((funding) => {
-      return {
-        id: funding._id.toString(),
-        ...funding,
-      };
-    });
-
-    return sendResponse({
-      res,
-      statusCode: 200,
-      message: "Fundings fetched successfully",
-      data: formatFundings,
-    });
-  } catch (error) {
-    return sendResponse({
-      res,
-      statusCode: 500,
-      message: "Internal server error",
-      code: FUNDING_ERROR_CODE.INTERNAL_SERVER_ERROR,
-    });
-  }
-};
-
 export const getFundingsByUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -105,11 +80,18 @@ export const getFundingsByUser = async (req: Request, res: Response) => {
     });
   }
 };
+
 export const updateFunding = async (req: Request, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const { error, value: fundingData } = validateUpdateFunding(req.body);
+
     if (error) {
+      await session.abortTransaction();
+      session.endSession();
       return sendResponse({
         res,
         statusCode: 400,
@@ -118,11 +100,10 @@ export const updateFunding = async (req: Request, res: Response) => {
       });
     }
 
-    const funding = await Funding.findOne({
-      _id: id,
-    });
-
-    if (!funding) {
+    const isExist = await Funding.exists({ _id: id }).session(session);
+    if (!isExist) {
+      await session.abortTransaction();
+      session.endSession();
       return sendResponse({
         res,
         statusCode: 404,
@@ -132,12 +113,14 @@ export const updateFunding = async (req: Request, res: Response) => {
     }
 
     if (fundingData.name) {
-      const isDuplicate = await Funding.findOne({
+      const isDuplicate = await Funding.exists({
         name: { $regex: new RegExp(`^${fundingData.name}$`, "i") },
         _id: { $ne: id },
-      });
+      }).session(session);
 
       if (isDuplicate) {
+        await session.abortTransaction();
+        session.endSession();
         return sendResponse({
           res,
           statusCode: 400,
@@ -148,7 +131,11 @@ export const updateFunding = async (req: Request, res: Response) => {
     }
 
     if (fundingData.isDefault) {
-      await Funding.updateMany({ userId: fundingData.userId }, { $set: { isDefault: false } });
+      await Funding.updateMany(
+        { userId: fundingData.userId },
+        { $set: { isDefault: false } },
+        { session },
+      );
     }
 
     const updatedFunding = await Funding.findByIdAndUpdate(
@@ -162,9 +149,12 @@ export const updateFunding = async (req: Request, res: Response) => {
           isDefault: fundingData.isDefault,
         },
       },
-      { new: true },
+      { new: true, session },
     );
+
     if (!updatedFunding) {
+      await session.abortTransaction();
+      session.endSession();
       return sendResponse({
         res,
         statusCode: 404,
@@ -172,6 +162,9 @@ export const updateFunding = async (req: Request, res: Response) => {
         code: FUNDING_ERROR_CODE.FUNDING_NOT_FOUND,
       });
     }
+
+    await session.commitTransaction();
+    session.endSession();
 
     const { _id, ...rest } = updatedFunding.toObject();
 
@@ -182,6 +175,8 @@ export const updateFunding = async (req: Request, res: Response) => {
       data: { id: _id, ...rest },
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     return sendResponse({
       res,
       statusCode: 500,
