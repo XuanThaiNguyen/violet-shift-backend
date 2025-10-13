@@ -1,6 +1,7 @@
 import { Express, Router } from "express";
 import authRoutes from "./authRoute";
 import clientRoutes from "./clientRoute";
+import fundingRoutes from "./fundingRoute";
 import healthzRoutes from "./healthzRoute";
 import meRoutes from "./meRoute";
 import priceBookRoutes from "./priceBookRoute";
@@ -15,6 +16,7 @@ router.use("/staffs", staffRoutes);
 router.use("/clients", clientRoutes);
 router.use("/shifts", shiftRoutes);
 router.use("/pricebook", priceBookRoutes);
+router.use("/fundings", fundingRoutes);
 
 export const route = (app: Express) => {
   const prefix = process.env.API_PREFIX || "/";
