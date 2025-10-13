@@ -1,7 +1,6 @@
 import { Router } from "express";
-import { getMe, updateMe } from "../controllers/me";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
-import { addShift, getShift, isAssignedToShift } from "../controllers/shiftController";
+import { addShift, getShift, isAssignedToShift } from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
 
 const router = Router();
