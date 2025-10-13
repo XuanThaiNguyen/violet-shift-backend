@@ -11,6 +11,11 @@ export interface IShiftTask extends Document {
 }
 
 export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
+  shift: {
+    type: Schema.Types.ObjectId,
+    ref: "Shift",
+    required: true,
+  },
   name: {
     type: String,
     trim: true,
@@ -32,9 +37,11 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
     type: Date,
     default: null,
   },
-  
 });
 
-export const ShiftTask: Model<IShiftTask> = mongoose.model<IShiftTask>("ShiftTask", ShiftTaskSchema);
+export const ShiftTask: Model<IShiftTask> = mongoose.model<IShiftTask>(
+  "ShiftTask",
+  ShiftTaskSchema,
+);
 
 export default ShiftTask;

@@ -32,6 +32,6 @@ export const requireToken: Handler = async (req: Request, res: Response, next: N
       statusCode: 401,
       message: "Invalid token",
       code: AUTH_ERROR_CODE.UNAUTHENTICATED,
-    }); 
+    });
   }
 };

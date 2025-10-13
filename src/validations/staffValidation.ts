@@ -49,7 +49,6 @@ export interface IUpdateStaff {
   employmentType: string;
 }
 
-
 export const validateQueryStaffs = (data: IQueryStaffs) => {
   const schema = Joi.object<IQueryStaffs>({
     query: Joi.string().optional().allow(""),

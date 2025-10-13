@@ -36,13 +36,11 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       required: true,
       type: Number, // unix timestamp
       trim: true,
-      index: true,
     },
     timeTo: {
       required: true,
       type: Number, // unix timestamp
       trim: true,
-      index: true,
     },
     paymentMethod: {
       required: true,
@@ -54,7 +52,6 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       required: true,
       type: [String],
       trim: true,
-      index: true,
     },
   },
   {
@@ -62,6 +59,9 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
   },
 );
 
-export const StaffSchedule: Model<IStaffSchedule> = mongoose.model<IStaffSchedule>("StaffSchedule", StaffScheduleSchema);
+export const StaffSchedule: Model<IStaffSchedule> = mongoose.model<IStaffSchedule>(
+  "StaffSchedule",
+  StaffScheduleSchema,
+);
 
 export default StaffSchedule;
