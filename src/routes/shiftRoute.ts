@@ -2,13 +2,9 @@ import { Router } from "express";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import { addShift, getShift, isAssignedToShift } from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
-import {
-  getSchedulesByShiftId as getStaffSchedules,
-} from "../controllers/shifts/staffScheduleController";
+import { getSchedulesByShiftId as getStaffSchedules } from "../controllers/shifts/staffScheduleController";
 import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
-import { getTasksByShiftId } from "../controllers/shifts/shiftTasksController";
-
-
+import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
 
 const router = Router();
 router.use(requireAuth);
@@ -376,7 +372,6 @@ router.get(
   getStaffSchedules,
 );
 
-
 /**
  * @swagger
  * /shifts/{shiftId}/client-schedules:
@@ -474,10 +469,50 @@ router.get(
  *                     type: string
  *                     example: 2021-01-01T00:00:00.000Z
  */
-router.get(
-  "/:shiftId/tasks",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
-  getTasksByShiftId,
-);
+router.get("/:shiftId/tasks", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), getTasksByShiftId);
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/tasks/{taskId}:
+ *   put:
+ *     tags:
+ *       - Shifts
+ *     summary: Update task status by shift ID and task ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *       - name: taskId
+ *         in: path
+ *         description: Task ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isCompleted:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Update task status by shift ID and task ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 'ok'
+ */
+router.put(
+  "/:shiftId/tasks/:taskId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  updateTaskStatus,
+);
 export default router;
