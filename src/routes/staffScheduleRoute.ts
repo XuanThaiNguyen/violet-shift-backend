@@ -87,6 +87,16 @@ router.get(
  *         description: Staff ID
  *         required: true
  *         type: string
+ *       - name: from
+ *         in: query
+ *         description: From date
+ *         required: false
+ *         type: string
+ *       - name: to
+ *         in: query
+ *         description: To date
+ *         required: false
+ *         type: string
  *     responses:
  *       200:
  *         description: Staff schedules fetched successfully
