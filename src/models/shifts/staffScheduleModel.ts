@@ -1,7 +1,6 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 import { IUser } from "../userModel";
-import { IShift } from "./shiftModel";
-import { IClient } from "../clientModel";
+import { IShift, ShiftTypes, ShiftTypesEnum } from "./shiftModel";
 
 export const PaymentMethods = ["default", "cash"] as const;
 export type PaymentMethodsEnum = (typeof PaymentMethods)[number];

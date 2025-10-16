@@ -6,8 +6,10 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon",
+    "dev:consumer": "nodemon --config nodemon.consumer.json",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:consumer": "node dist/consumer.js",
     "seed:admin": "ts-node src/seeds/addSuperAdmin.ts",
     "seed:roles": "ts-node src/seeds/addRoles.ts",
     "seed:client": "ts-node src/seeds/addClient.ts",
@@ -40,6 +42,7 @@
     "ioredis": "^5.8.0",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "mongoose": "^8.18.3",
     "morgan": "^1.10.1",
     "nanoid": "^3.3.11",

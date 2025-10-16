@@ -81,11 +81,20 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
       });
     }
     const maxTo = addMonths(queryData.from, 1).getTime();
-    const clampTo = Math.min(Math.max(queryData.to, queryData.from + 1000 * 1000 * 60 * 60 * 24), maxTo);
-    const staffSchedules = await StaffSchedule.find({
-      staff: Types.ObjectId.createFromHexString(staffId),
-      timeFrom: { $gte: queryData.from, $lte: clampTo },
-    });
+    const clampTo = Math.min(Math.max(queryData.to, queryData.from + 1000 * 60 * 60 * 24), maxTo);
+    const staffSchedules = await StaffSchedule.find(
+      {
+        staff: Types.ObjectId.createFromHexString(staffId),
+        timeFrom: { $gte: queryData.from, $lte: clampTo },
+      },
+      undefined,
+      {
+        populate: [{
+          path: "shift",
+          select: ["shiftType", "address", "unitNumber"],
+        }]
+      }
+    );
     return sendResponse({
       res,
       statusCode: 200,
