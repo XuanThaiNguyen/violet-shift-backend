@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { isInRoles, requireAuth } from "../middleware/authMiddleware";
-import { acceptInvitation, getStaffs, inviteStaff, updateStaff } from "../controllers/staffController";
+import {
+  acceptInvitation,
+  getStaffs,
+  inviteStaff,
+  updateStaff,
+} from "../controllers/staffController";
 import { ROLE_IDS } from "../constants/roles";
 
 const router = Router();

@@ -6,6 +6,7 @@ import healthzRoutes from "./healthzRoute";
 import meRoutes from "./meRoute";
 import priceBookRoutes from "./priceBookRoute";
 import shiftRoutes from "./shiftRoute";
+import staffScheduleRoutes from "./staffScheduleRoute";
 import staffRoutes from "./staffRoute";
 
 const router = Router();
@@ -15,6 +16,7 @@ router.use("/me", meRoutes);
 router.use("/staffs", staffRoutes);
 router.use("/clients", clientRoutes);
 router.use("/shifts", shiftRoutes);
+router.use("/staff-schedules", staffScheduleRoutes);
 router.use("/pricebook", priceBookRoutes);
 router.use("/fundings", fundingRoutes);
 

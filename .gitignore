@@ -1,5 +1,6 @@
 node_modules
 dist
+dist_consumer
 .env
 .env.local
 .env.development

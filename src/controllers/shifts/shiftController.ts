@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import mongoose, { PipelineStage, Types } from "mongoose";
-import { API_STATUS } from "../constants/apiStatus";
-import { sendResponse } from "../utils/sendResponse";
+import { API_STATUS } from "../../constants/apiStatus";
+import { sendResponse } from "../../utils/sendResponse";
 import {
   ClientSchedule as ClientScheduleType,
   IAddShift,
@@ -10,16 +10,16 @@ import {
   StaffSchedule as StaffScheduleType,
   validateAddShift,
   validateQueryShift,
-} from "../validations/shiftValidation";
-import { SHIFT_ERROR_CODE } from "../constants/errorCode";
+} from "../../validations/shiftValidation";
+import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
 import { CronExpressionParser } from "cron-parser";
-import Shift, { IShift } from "../models/shifts/shiftModel";
-import ShiftRepeat from "../models/shifts/shiftRepeatModel";
-import ClientSchedule from "../models/shifts/clientScheduleModel";
-import StaffSchedule from "../models/shifts/staffScheduleModel";
-import ShiftTask from "../models/shifts/shiftTaskModel";
-import Client from "../models/clientModel";
-import { AuthRequest } from "../middleware/type";
+import Shift, { IShift } from "../../models/shifts/shiftModel";
+import ShiftRepeat from "../../models/shifts/shiftRepeatModel";
+import ClientSchedule from "../../models/shifts/clientScheduleModel";
+import StaffSchedule from "../../models/shifts/staffScheduleModel";
+import ShiftTask from "../../models/shifts/shiftTaskModel";
+import Client from "../../models/clientModel";
+import { AuthRequest } from "../../middleware/type";
 
 type IRawAddShift = Omit<
   IAddShift,
@@ -28,12 +28,15 @@ type IRawAddShift = Omit<
 
 // middleware to check if the user is assigned to the shift
 export const isAssignedToShift = async (req: Request) => {
+  try {
+    const { shiftId } = req.params;
+    const userId = (req as AuthRequest).userId;
 
-  const { shiftId } = req.params;
-  const userId = (req as AuthRequest).userId;
-
-  const schedule = await StaffSchedule.findOne({ shift: shiftId, user: userId });
-  return !!schedule;
+    const schedule = await StaffSchedule.findOne({ shift: shiftId, user: userId });
+    return !!schedule;
+  } catch (error) {
+    return false;
+  }
 };
 
 export const addShift = async (req: Request, res: Response) => {
@@ -148,29 +151,30 @@ export const addShift = async (req: Request, res: Response) => {
           }
         }
         // Insert shifts and get clients
+        const clientIds = Array.from(new Set(clientSchedules.map((clientSchedule) => clientSchedule.client)));
         const [shiftDocs, clients] = await Promise.all([
           Shift.insertMany(occurrences, { session }),
-          Client.find({ _id: clientSchedules.map((clientSchedule) => clientSchedule.client) }),
+          Client.find({ _id: clientIds }),
         ]);
         const _clientSchedules = clientScheduleReplicas
-          .map((clientSchedule) => {
+          .map((clientSchedule, idx) => {
             return clientSchedule.map((clientSchedule) => {
               return {
                 ...clientSchedule,
-                shift: shiftDocs[0]._id as string,
+                shift: shiftDocs[idx]._id as string,
               };
             });
           })
           .flat();
         const _staffSchedules = staffScheduleReplicas
-          .map((staffSchedule) => {
+          .map((staffSchedule, idx) => {
             return staffSchedule.map((staffSchedule) => {
               return {
                 ...staffSchedule,
-                shift: shiftDocs[0]._id as string,
+                shift: shiftDocs[idx]._id as string,
                 clientNames: clients.map((client) => {
                   const clientName =
-                    client.displayName ||
+                    client.preferredName ||
                     (client.middleName
                       ? `${client.firstName} ${client.middleName} ${client.lastName}`
                       : `${client.firstName} ${client.lastName}`);
@@ -181,11 +185,11 @@ export const addShift = async (req: Request, res: Response) => {
           })
           .flat();
         const _tasks = taskReplicas
-          .map((task) => {
+          .map((task, idx) => {
             return task.map((task) => {
               return {
                 ...task,
-                shift: shiftDocs[0]._id as string,
+                shift: shiftDocs[idx]._id as string,
               };
             });
           })
@@ -243,7 +247,6 @@ export const addShift = async (req: Request, res: Response) => {
 export const getShift = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    console.log("🚀 ~ shiftId:", shiftId)
     const shift = await Shift.findOne({ _id: shiftId }).populate([
       {
         path: "repeat",

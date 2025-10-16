@@ -32,6 +32,9 @@ const ShiftRepeatSchema: Schema<IShiftRepeat> = new Schema<IShiftRepeat>(
   },
 );
 
-export const ShiftRepeat: Model<IShiftRepeat> = mongoose.model<IShiftRepeat>("ShiftRepeat", ShiftRepeatSchema);
+export const ShiftRepeat: Model<IShiftRepeat> = mongoose.model<IShiftRepeat>(
+  "ShiftRepeat",
+  ShiftRepeatSchema,
+);
 
 export default ShiftRepeat;

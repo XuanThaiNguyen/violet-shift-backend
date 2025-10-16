@@ -31,13 +31,11 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
       required: true,
       type: Number,
       trim: true,
-      index: true,
     },
     timeTo: {
       required: true,
       type: Number,
       trim: true,
-      index: true,
     },
   },
   {
@@ -45,6 +43,9 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
   },
 );
 
-export const ClientSchedule: Model<IClientSchedule> = mongoose.model<IClientSchedule>("ClientSchedule", ClientScheduleSchema);
+export const ClientSchedule: Model<IClientSchedule> = mongoose.model<IClientSchedule>(
+  "ClientSchedule",
+  ClientScheduleSchema,
+);
 
 export default ClientSchedule;

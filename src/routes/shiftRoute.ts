@@ -1,8 +1,14 @@
 import { Router } from "express";
-import { getMe, updateMe } from "../controllers/me";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
-import { addShift, getShift, isAssignedToShift } from "../controllers/shiftController";
+import { addShift, getShift, isAssignedToShift } from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
+import {
+  getSchedulesByShiftId as getStaffSchedules,
+} from "../controllers/shifts/staffScheduleController";
+import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
+import { getTasksByShiftId } from "../controllers/shifts/shiftTasksController";
+
+
 
 const router = Router();
 router.use(requireAuth);
@@ -99,7 +105,7 @@ router.use(requireAuth);
  *                       tz:
  *                         type: string
  *                         example: Asia/Shanghai
- * 
+ *
  *                   instruction:
  *                     type: string
  *                     example: This is a shift instruction
@@ -127,7 +133,11 @@ router.use(requireAuth);
  *                     type: number
  *                     example: 10
  */
-router.get("/:shiftId", isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift), getShift);
+router.get(
+  "/:shiftId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  getShift,
+);
 
 /**
  * @swagger
@@ -266,7 +276,7 @@ router.get("/:shiftId", isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], 
  *                   tz:
  *                     type: string
  *                     example: Asia/Shanghai
- * 
+ *
  *               instruction:
  *                 type: string
  *                 example: This is a shift instruction
@@ -306,6 +316,168 @@ router.get("/:shiftId", isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], 
  *                         example: 1234567890
  *
  */
-router.post("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
+router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
+
+/**
+ * @swagger
+ * /shifts/{shiftId}/staff-schedules:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get staff schedules by shift ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Get staff schedules by shift ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: 1234567890
+ *                   staff:
+ *                     type: string
+ *                     example: 1234567890
+ *                   paymentMethod:
+ *                     type: string
+ *                     example: default
+ *                   timeFrom:
+ *                     type: number
+ *                     example: 10
+ *                   timeTo:
+ *                     type: number
+ *                     example: 10
+ *                   clientNames:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: John Doe
+ *                   createdAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ *                   updatedAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ */
+router.get(
+  "/:shiftId/staff-schedules",
+  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  getStaffSchedules,
+);
+
+
+/**
+ * @swagger
+ * /shifts/{shiftId}/client-schedules:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get client schedules by shift ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Get client schedules by shift ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: 1234567890
+ *                   client:
+ *                     type: string
+ *                     example: 1234567890
+ *                   timeFrom:
+ *                     type: number
+ *                     example: 10
+ *                   timeTo:
+ *                     type: number
+ *                     example: 10
+ *                   createdAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ *                   updatedAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ */
+router.get(
+  "/:shiftId/client-schedules",
+  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  getClientSchedules,
+);
+
+/**
+ * @swagger
+ * /shifts/{shiftId}/tasks:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get tasks by shift ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Get tasks by shift ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: 1234567890
+ *                   name:
+ *                     type: string
+ *                     example: Task Name
+ *                   description:
+ *                     type: string
+ *                     example: This is a task description
+ *                   isMandatory:
+ *                     type: boolean
+ *                     example: true
+ *                   isCompleted:
+ *                     type: boolean
+ *                     example: false
+ *                   createdAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ *                   updatedAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ */
+router.get(
+  "/:shiftId/tasks",
+  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  getTasksByShiftId,
+);
 
 export default router;

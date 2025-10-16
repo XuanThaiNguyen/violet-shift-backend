@@ -14,7 +14,7 @@ export type ShiftTask = {
 export type ClientSchedule = {
   client: string;
   timeFrom: number; // unix timestamp
-  timeTo: number; // unix 
+  timeTo: number; // unix
 };
 
 export type StaffSchedule = {
@@ -106,7 +106,9 @@ export const validateAddShift = (data: IAddShift) => {
 
   const staffScheduleSchema = Joi.object<StaffSchedule>({
     staff: Joi.string().required(),
-    paymentMethod: Joi.string().valid(...PaymentMethods).required(),
+    paymentMethod: Joi.string()
+      .valid(...PaymentMethods)
+      .required(),
     timeFrom: Joi.number().required(),
     timeTo: Joi.number().required(),
   });
@@ -137,13 +139,13 @@ export const validateAddShift = (data: IAddShift) => {
     // shift information
     shiftType: Joi.string()
       .valid(...ShiftTypes)
-      .required(),
+      .optional(),
     additionalShiftTypes: Joi.array()
       .items(Joi.string().valid(...ShiftTypes))
-      .required(),
+      .optional(),
     allowances: Joi.array()
       .items(Joi.string().valid(...Allowances))
-      .required(),
+      .optional(),
     mileageInvoicing: Joi.array().items(Joi.string()).optional(),
     shiftMileage: Joi.number().optional(),
     additionalCost: Joi.number().optional(),
