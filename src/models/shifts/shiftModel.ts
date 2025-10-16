@@ -18,9 +18,11 @@ export const ShiftTypes = [
   "24_hour_care",
 ] as const;
 export const Allowances = ["expense", "mileage", "sleepover"] as const;
+export const ShiftStatus = ["booked", "started", "completed"] as const;
 
 export type AllowancesEnum = (typeof Allowances)[number];
 export type ShiftTypesEnum = (typeof ShiftTypes)[number];
+export type ShiftStatusEnum = (typeof ShiftStatus)[number];
 
 export interface IShift extends Document {
   // shift information
@@ -62,6 +64,8 @@ export interface IShift extends Document {
   clientClockOutTime: number; // unix timestamp
   staffClockOutTime: number; // unix timestamp
   // Todo: add more status later
+
+  status: ShiftStatusEnum;
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -182,6 +186,13 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       type: Number,
       trim: true,
     }, // unix timestamp
+
+
+    status: {
+      type: String,
+      enum: ShiftStatus,
+      default: "booked",
+    }
   },
   {
     timestamps: true,
