@@ -423,7 +423,7 @@ router.get(
  */
 router.get(
   "/:shiftId/client-schedules",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getClientSchedules,
 );
 
@@ -476,7 +476,7 @@ router.get(
  */
 router.get(
   "/:shiftId/tasks",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getTasksByShiftId,
 );
 

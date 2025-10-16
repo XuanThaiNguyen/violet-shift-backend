@@ -13,7 +13,18 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
         populate: [
           {
             path: "client",
-            select: ["firstName", "lastName", "middleName", "preferredName"],
+            select: [
+              "firstName",
+              "lastName",
+              "middleName",
+              "preferredName",
+              "email",
+              "phoneNumber",
+              "mobileNumber",
+              "address",
+              "apartmentNumber",
+              "languages",
+            ],
           },
         ],
       },
