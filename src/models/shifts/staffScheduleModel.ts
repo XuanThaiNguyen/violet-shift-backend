@@ -56,6 +56,24 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       type: [String],
       trim: true,
     },
+    clocksInAt: {
+      required: true,
+      type: Number, // unix timestamp
+      trim: true,
+    },
+    clocksOutAt: {
+      required: true,
+      type: Number, // unix timestamp
+      trim: true,
+    },
+    signature: {
+      type: String,
+      trim: true,
+    },
+    clientSignatures: {
+      type: [String],
+      trim: true,
+    },
   },
   {
     timestamps: true,
