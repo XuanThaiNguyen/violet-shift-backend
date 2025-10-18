@@ -19,11 +19,11 @@ export const isAssignedToSchedule = async (req: Request) => {
     const scheduleId = req.params.scheduleId;
     const userId = (req as AuthRequestWithSchedule).userId;
 
-    const schedule = await StaffSchedule.findOne({ _id: scheduleId, user: userId });
+    const schedule = await StaffSchedule.findOne({ _id: scheduleId, user: userId }, undefined, { lean: true, virtuals: true });
     if (!schedule) {
       return false;
     }
-    (req as AuthRequestWithSchedule)["schedule"] = schedule?.toObject({ virtuals: true });
+    (req as AuthRequestWithSchedule)["schedule"] = schedule;
     return true;
   } catch (error) {
     return false;
@@ -41,7 +41,7 @@ export const getStaffSchedule = async (req: Request, res: Response) => {
 
   try {
     const scheduleId = req.params.scheduleId;
-    const schedule = await StaffSchedule.findById(scheduleId);
+    const schedule = await StaffSchedule.findById(scheduleId, undefined, { lean: true, virtuals: true });
     if (!schedule) {
       return sendResponse({
         res,
@@ -82,7 +82,7 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
     }
     const maxTo = addMonths(queryData.from, 1).getTime();
     const clampTo = Math.min(Math.max(queryData.to, queryData.from + 1000 * 60 * 60 * 24), maxTo);
-    const staffSchedules = await StaffSchedule.find(
+    const _staffSchedules = await StaffSchedule.find(
       {
         staff: Types.ObjectId.createFromHexString(staffId),
         timeFrom: { $gte: queryData.from, $lte: clampTo },
@@ -95,8 +95,14 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
             select: ["shiftType", "address", "unitNumber"],
           },
         ],
+        lean: true,
+        virtuals: false,
       },
     );
+    const staffSchedules = _staffSchedules.map((staffSchedule) => {
+      staffSchedule.id = staffSchedule._id;
+      return staffSchedule;
+    });
     return sendResponse({
       res,
       statusCode: 200,
@@ -116,7 +122,7 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
 export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const schedules = await StaffSchedule.find({ shift: shiftId });
+    const schedules = await StaffSchedule.find({ shift: shiftId }, undefined, { lean: true });
     return sendResponse({
       res,
       statusCode: 200,
@@ -138,18 +144,11 @@ export const clockIn = async (req: Request, res: Response) => {
     const shiftId = req.params.shiftId;
     const scheduleId = req.params.scheduleId;
     const userId = (req as AuthRequest).userId;
-    const schedule = await StaffSchedule.findOneAndUpdate(
-      {
-        _id: scheduleId,
-        staff: userId,
-        shift: shiftId,
-        timeFrom: { $lte: Date.now() },
-        timeTo: { $gte: Date.now() },
-        clocksInAt: { $exists: false },
-      },
-      { $set: { clocksInAt: Date.now() } },
-      { new: true },
-    );
+    const schedule = await StaffSchedule.findOne({
+      _id: scheduleId,
+      staff: userId,
+      shift: shiftId,
+    });
     if (!schedule) {
       return sendResponse({
         res,
@@ -158,6 +157,37 @@ export const clockIn = async (req: Request, res: Response) => {
         code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
       });
     }
+
+    if (schedule.clocksInAt) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Staff already clocked in",
+        code: SHIFT_ERROR_CODE.STAFF_ALREADY_CLOCKED_IN,
+      });
+    }
+
+    if (schedule.timeFrom > Date.now()) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Shift has not started yet",
+        code: SHIFT_ERROR_CODE.SHIFT_NOT_STARTED,
+      });
+    }
+
+    if (schedule.timeTo < Date.now()) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Shift has ended",
+        code: SHIFT_ERROR_CODE.SHIFT_ENDED,
+      });
+    }
+
+    schedule.clocksInAt = Date.now();
+    await schedule.save();
+
     return sendResponse({
       res,
       statusCode: 200,
@@ -202,17 +232,12 @@ export const clockOut = async (req: Request, res: Response) => {
       });
     }
 
-    const schedule = await StaffSchedule.findOneAndUpdate(
+    const schedule = await StaffSchedule.findOne(
       {
         _id: scheduleId,
         staff: userId,
         shift: shiftId,
-        // timeTo: { $gte: Date.now() }, // Allow late clock out
-        clocksInAt: { $exists: true },
-        clocksOutAt: { $exists: false },
       },
-      { $set: { clocksOutAt: Date.now(), ...clockOutData } },
-      { new: true },
     );
     if (!schedule) {
       return sendResponse({
@@ -222,6 +247,35 @@ export const clockOut = async (req: Request, res: Response) => {
         code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
       });
     }
+    if (schedule.clocksOutAt) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Staff has already clocked out",
+        code: SHIFT_ERROR_CODE.STAFF_ALREADY_CLOCKED_OUT,
+      });
+    }
+    if (!schedule.clocksInAt) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Staff has not clocked in yet",
+        code: SHIFT_ERROR_CODE.STAFF_NOT_CLOCKED_IN,
+      });
+    }
+    // allow late clock out. Uncomment if you want to prevent late clock out
+    // if (schedule.timeTo < Date.now()) {
+    //   return sendResponse({
+    //     res,
+    //     statusCode: 400,
+    //     message: "Shift has ended",
+    //     code: SHIFT_ERROR_CODE.SHIFT_ENDED,
+    //   });
+    // }
+
+    schedule.clocksOutAt = Date.now();
+    await schedule.save();
+
     return sendResponse({
       res,
       statusCode: 200,

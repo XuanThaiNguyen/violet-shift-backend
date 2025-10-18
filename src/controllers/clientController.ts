@@ -178,7 +178,7 @@ export const getArchivedClients = async (req: Request, res: Response) => {
 export const getClient = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const client = await Client.findById(id);
+    const client = await Client.findById(id, undefined, { lean: true });
     if (!client) {
       return sendResponse({
         res,
@@ -188,7 +188,7 @@ export const getClient = async (req: Request, res: Response) => {
       });
     }
 
-    const clientData = client.toObject();
+    const clientData = client;
     const { _id, ...rest } = clientData;
 
     return sendResponse({

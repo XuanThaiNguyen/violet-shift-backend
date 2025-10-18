@@ -151,7 +151,9 @@ export const addShift = async (req: Request, res: Response) => {
           }
         }
         // Insert shifts and get clients
-        const clientIds = Array.from(new Set(clientSchedules.map((clientSchedule) => clientSchedule.client)));
+        const clientIds = Array.from(
+          new Set(clientSchedules.map((clientSchedule) => clientSchedule.client)),
+        );
         const [shiftDocs, clients] = await Promise.all([
           Shift.insertMany(occurrences, { session }),
           Client.find({ _id: clientIds }),
@@ -247,11 +249,13 @@ export const addShift = async (req: Request, res: Response) => {
 export const getShift = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const shift = await Shift.findOne({ _id: shiftId }).populate([
-      {
-        path: "repeat",
-      },
-    ]);
+    const shift = await Shift.findOne({ _id: shiftId }, undefined, { lean: true }).populate(
+      [
+        {
+          path: "repeat",
+        },
+      ],
+    )
     if (!shift) {
       return sendResponse({
         res,

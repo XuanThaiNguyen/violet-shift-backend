@@ -7,7 +7,11 @@ import { validateTaskStatus } from "../../validations/shiftTaskValidation";
 export const getTasksByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const tasks = await ShiftTask.find({ shift: shiftId });
+    const _tasks = await ShiftTask.find({ shift: shiftId }, undefined, { lean: true })
+    const tasks = _tasks.map((task) => {
+      task.id = task._id;
+      return task;
+    });
     return sendResponse({
       res,
       statusCode: 200,
@@ -40,7 +44,8 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
 
     const updatedTask = await ShiftTask.updateOne(
       { _id: taskId, shift: shiftId },
-      { $set: { isCompleted: taskData.isCompleted }, isNew: true });
+      { $set: { isCompleted: taskData.isCompleted }, isNew: true },
+    );
     if (!updatedTask) {
       return sendResponse({
         res,
@@ -53,7 +58,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       message: "Task status updated successfully",
-      data: 'ok',
+      data: "ok",
     });
   } catch (error) {
     return sendResponse({
@@ -63,4 +68,4 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
       code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
     });
   }
-}
+};

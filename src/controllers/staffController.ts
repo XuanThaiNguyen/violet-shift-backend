@@ -126,7 +126,7 @@ export const getStaff = async (req: Request, res: Response) => {
       });
     }
 
-    const user = await User.findById(queryData.staffId);
+    const user = await User.findById(queryData.staffId, undefined, { lean: true });
     if (!user) {
       return sendResponse({
         res,
@@ -140,7 +140,10 @@ export const getStaff = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       message: "User fetched successfully",
-      data: user,
+      data: {
+        id: user._id,
+        ...user,
+      },
     });
   } catch (error) {
     return sendResponse({
@@ -165,7 +168,7 @@ export const updateStaff = async (req: Request, res: Response) => {
       });
     }
 
-    const user = await User.findOneAndUpdate({ _id: staffId }, { $set: staffData }, { new: true });
+    const user = await User.findOneAndUpdate({ _id: staffId }, { $set: staffData }, { new: true, lean: true });
     if (!user) {
       return sendResponse({
         res,
@@ -179,7 +182,10 @@ export const updateStaff = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       message: "User updated successfully",
-      data: user.toObject({ virtuals: true }),
+      data: {
+        id: user._id,
+        ...user,
+      },
     });
   } catch (error) {
     return sendResponse({

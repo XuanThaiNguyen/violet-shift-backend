@@ -6,7 +6,7 @@ import ClientSchedule from "../../models/shifts/clientScheduleModel";
 export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const schedules = await ClientSchedule.find(
+    const _schedules = await ClientSchedule.find(
       { shift: shiftId },
       {},
       {
@@ -27,8 +27,13 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
             ],
           },
         ],
+        lean: true,
       },
     );
+    const schedules = _schedules.map((schedule) => {
+      schedule.id = schedule._id;
+      return schedule;
+    });
     return sendResponse({
       res,
       statusCode: 200,

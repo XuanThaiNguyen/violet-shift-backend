@@ -25,7 +25,7 @@ export const login = async (req: Request, res: Response) => {
         message: error.details[0].message,
       });
 
-    const user = await User.findOne({ email: userData.email }, { __v: 0 });
+    const user = await User.findOne({ email: userData.email }, { __v: 0 }, { lean: true });
     if (!user?.password) {
       return sendResponse({
         res,
@@ -45,7 +45,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const { password, ...userInfo } = user.toObject({ virtuals: true });
+    const { password, ...userInfo } = user;
 
     const token = jwt.sign(
       { userId: String(user.id), email: user.email },
@@ -61,7 +61,10 @@ export const login = async (req: Request, res: Response) => {
       status: API_STATUS.OK,
       data: {
         token,
-        user: userInfo,
+        user: {
+          id: user._id,
+          ...userInfo,
+        },
       },
     });
   } catch (error) {
@@ -116,7 +119,7 @@ export const newPassword = async (req: Request, res: Response) => {
       message: "Password updated successfully",
       data: {
         token,
-        user: user.toObject(),
+        user: user.toObject({ virtuals: true }),
       },
     });
   } catch (error) {
@@ -167,6 +170,8 @@ export const updatePassword = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       status: API_STATUS.OK,
+      message: "Password updated successfully",
+      data: 'OK',
     });
   } catch (error) {
     return sendResponse({

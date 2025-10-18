@@ -48,6 +48,8 @@ export const updateMe = async (req: Request, res: Response) => {
       },
       {
         projection: { password: 0 },
+        new: true,
+        lean: true,
       },
     );
     if (!updatedUser) {
@@ -58,12 +60,14 @@ export const updateMe = async (req: Request, res: Response) => {
         code: ME_ERROR_CODE.USER_NOT_FOUND,
       });
     }
-    const userInfo = updatedUser?.toObject({ virtuals: true }) || {};
     return sendResponse({
       res,
       statusCode: 200,
       message: "User updated successfully",
-      data: userInfo,
+      data: {
+        id: updatedUser._id,
+        ...updatedUser,
+      },
     });
   } catch (error) {
     return sendResponse({
