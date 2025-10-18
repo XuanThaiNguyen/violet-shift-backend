@@ -57,12 +57,10 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       trim: true,
     },
     clocksInAt: {
-      required: true,
       type: Number, // unix timestamp
       trim: true,
     },
     clocksOutAt: {
-      required: true,
       type: Number, // unix timestamp
       trim: true,
     },
