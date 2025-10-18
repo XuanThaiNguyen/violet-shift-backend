@@ -12,6 +12,10 @@ export interface IStaffSchedule extends Document {
   timeFrom: number; // unix timestamp
   timeTo: number; // unix timestamp
   clientNames: string[];
+  clocksInAt: number; // unix timestamp
+  clocksOutAt: number; // unix timestamp
+  signature?: string;
+  clientSignatures?: string[];
   // payGroup: string;
 }
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import { addShift, getShift, isAssignedToShift } from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
-import { getSchedulesByShiftId as getStaffSchedules } from "../controllers/shifts/staffScheduleController";
+import { clockIn, clockOut, getSchedulesByShiftId as getStaffSchedules } from "../controllers/shifts/staffScheduleController";
 import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
 import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
 
@@ -374,6 +374,100 @@ router.get(
 
 /**
  * @swagger
+ * /shifts/{shiftId}/staff-schedules/{scheduleId}/clock-in:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Staff clocks in
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *       - name: scheduleId
+ *         in: path
+ *         description: Schedule ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Staff clocks in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 1234567890
+ *                     clocksInAt:
+ *                       type: string
+ *                       example: 2021-01-01T00:00:00.000Z
+ */
+router.post("/:shiftId/staff-schedules/:scheduleId/clock-in", clockIn);
+
+/**
+ * @swagger
+ * /shifts/{shiftId}/staff-schedules/{scheduleId}/clock-out:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Staff clock out
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Staff ID
+ *         required: true
+ *         type: string
+ *       - name: scheduleId
+ *         in: path
+ *         description: Schedule ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               signature:
+ *                 type: string
+ *                 example: 1234567890
+ *               clientSignatures:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   example: https://example.com/signature.png
+ *     responses:
+ *       200:
+ *         description: Staff clock out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 1234567890
+ *                     clocksOutAt:
+ *                       type: string
+ *                       example: 2021-01-01T00:00:00.000Z
+ */
+router.post("/:shiftId/staff-schedules/:scheduleId/clock-out", clockOut);
+
+/**
+ * @swagger
  * /shifts/{shiftId}/client-schedules:
  *   get:
  *     tags:
@@ -519,4 +613,5 @@ router.put(
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateTaskStatus,
 );
+
 export default router;

@@ -101,7 +101,7 @@ export const validateAddShift = (data: IAddShift) => {
   const clientScheduleSchema = Joi.object<ClientSchedule>({
     client: Joi.string().required(),
     timeFrom: Joi.number().required(),
-    timeTo: Joi.number().required(),
+    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
   });
 
   const staffScheduleSchema = Joi.object<StaffSchedule>({
@@ -110,7 +110,7 @@ export const validateAddShift = (data: IAddShift) => {
       .valid(...PaymentMethods)
       .required(),
     timeFrom: Joi.number().required(),
-    timeTo: Joi.number().required(),
+    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
   });
 
   const shiftTaskSchema = Joi.object<ShiftTask>({
@@ -155,7 +155,7 @@ export const validateAddShift = (data: IAddShift) => {
 
     // time and location
     timeFrom: Joi.number().required(),
-    timeTo: Joi.number().required(),
+    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
     breakTime: Joi.number().optional(),
     address: Joi.string().optional().allow(""),
     unitNumber: Joi.string().optional().allow(""),

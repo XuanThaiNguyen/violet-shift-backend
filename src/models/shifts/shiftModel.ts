@@ -61,11 +61,7 @@ export interface IShift extends Document {
   // clock-out information
   clientClockOutRequired: boolean;
   staffClockOutRequired: boolean;
-  clientClockOutTime: number; // unix timestamp
-  staffClockOutTime: number; // unix timestamp
-  // Todo: add more status later
 
-  status: ShiftStatusEnum;
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -178,21 +174,7 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       type: Boolean,
       default: false,
     },
-    clientClockOutTime: {
-      type: Number,
-      trim: true,
-    }, // unix timestamp
-    staffClockOutTime: {
-      type: Number,
-      trim: true,
-    }, // unix timestamp
 
-
-    status: {
-      type: String,
-      enum: ShiftStatus,
-      default: "booked",
-    }
   },
   {
     timestamps: true,
