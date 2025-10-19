@@ -2,6 +2,7 @@ import { Router } from "express";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import {
   addShift,
+  bulkDeleteShift,
   deleteShift,
   getShift,
   isAssignedToShift,
@@ -352,6 +353,52 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *
  */
 router.delete("/:shiftId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), deleteShift);
+
+/**
+ * @swagger
+ * /shifts/bulk-delete:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Delete shift
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               repeatId:
+ *                 type: string
+ *                 description: Repeat ID
+ *                 required: true
+ *                 example: 1234567890
+ *               from:
+ *                 type: number
+ *                 description: From unix timestamp
+ *                 required: true
+ *                 example: 10
+ *               to:
+ *                 type: number
+ *                 description: To unix timestamp
+ *                 required: true
+ *                 example: 10
+ *     responses:
+ *       200:
+ *         description: Delete shift
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   example: 'OK'
+ *
+ */
+router.post("/bulk-delete", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), bulkDeleteShift);
 
 /**
  * @swagger

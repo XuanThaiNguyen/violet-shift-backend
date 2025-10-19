@@ -8,7 +8,7 @@ import {
   ShiftTask as ShiftTaskType,
   StaffSchedule as StaffScheduleType,
   validateAddShift,
-  validateQueryShift,
+  validateBulkDeleteShift,
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
 import { CronExpressionParser } from "cron-parser";
@@ -35,7 +35,11 @@ export const isAssignedToShift = async (req: Request) => {
     const { shiftId } = req.params;
     const userId = (req as AuthRequest).userId;
 
-    const schedule = await StaffSchedule.findOne({ shift: shiftId, user: userId, isDeleted: false });
+    const schedule = await StaffSchedule.findOne({
+      shift: shiftId,
+      user: userId,
+      isDeleted: false,
+    });
     return !!schedule;
   } catch (error) {
     return false;
@@ -307,7 +311,6 @@ export const deleteShift = async (req: Request, res: Response) => {
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-
         // sanity check if shift happened or not
         const [shift, staffSchedule] = await Promise.all([
           Shift.findOneAndUpdate(
@@ -315,7 +318,11 @@ export const deleteShift = async (req: Request, res: Response) => {
             { $set: { isDeleted: true } },
             { new: true, session },
           ),
-          StaffSchedule.findOne({ shift: shiftId, isDeleted: false, timeFrom: { $lt: Date.now() } }, undefined, { lean: true }),
+          StaffSchedule.findOne(
+            { shift: shiftId, isDeleted: false, timeFrom: { $lt: Date.now() } },
+            undefined,
+            { lean: true },
+          ),
         ]);
 
         if (!shift) {
@@ -382,6 +389,120 @@ export const deleteShift = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       message: "Shift deleted successfully",
+      data: "OK",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const bulkDeleteShift = async (req: Request, res: Response) => {
+  const INTERNAL_ERROR: Record<string, string> = {
+    SHIFT_NOT_FOUND: "SHIFT_NOT_FOUND",
+    SHIFT_HAPPENED: "SHIFT_HAPPENED",
+  };
+  const logger = controllerLogger.child({
+    function: "bulkDeleteShift",
+  });
+  try {
+    const { error, value: bulkDeleteData } = validateBulkDeleteShift(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+    const { repeatId, from, to } = bulkDeleteData;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // sanity check if the first shift happened or not
+        const shifts = await Shift.find(
+          {
+            repeat: repeatId,
+            isDeleted: false,
+            timeFrom: { $gte: from, $lte: to },
+          },
+          {},
+          { lean: true, sort: { timeFrom: 1 } },
+        );
+        if (!shifts || shifts.length === 0) {
+          throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
+        }
+
+        const staffSchedule = await StaffSchedule.findOne(
+          {
+            repeat: repeatId,
+            isDeleted: false,
+            timeFrom: { $lt: Date.now() },
+          },
+          undefined,
+          { lean: true },
+        );
+        if (staffSchedule) {
+          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
+        }
+        const shiftIds = shifts.map((shift) => shift._id);
+
+        // Now it's safe to delete the shifts
+        await Promise.all([
+          Shift.updateMany(
+            { repeat: repeatId, isDeleted: false, timeFrom: { $gte: from, $lte: to } },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+          ClientSchedule.updateMany(
+            { shift: { $in: shiftIds }, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+          StaffSchedule.updateMany(
+            { shift: { $in: shiftIds }, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+          ShiftTask.updateMany(
+            { shift: { $in: shiftIds }, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+        ]);
+      });
+    } catch (error) {
+      try {
+        await session.abortTransaction();
+      } catch {}
+
+      if (error instanceof Error) {
+        logger.error(error.message, error.stack);
+      } else {
+        logger.error("Unknown error", error);
+      }
+      return sendResponse({
+        res,
+        statusCode: 500,
+        message: "Internal server error",
+        code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      });
+    } finally {
+      await session.endSession();
+    }
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Shifts deleted successfully",
       data: "OK",
     });
   } catch (error) {

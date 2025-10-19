@@ -26,6 +26,14 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
               "languages",
             ],
           },
+          {
+            path: "priceBook",
+            select: ["priceBookTitle", "priceBookId"],
+          },
+          {
+            path: "fund",
+            select: ["name", "startDate", "expireDate", "amount", "balance", "isDefault"],
+          },
         ],
         lean: true,
       },

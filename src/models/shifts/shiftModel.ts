@@ -147,6 +147,7 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
     repeat: {
       type: Types.ObjectId,
       ref: "ShiftRepeat",
+      index: true,
     },
 
     instruction: {

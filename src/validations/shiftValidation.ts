@@ -13,6 +13,8 @@ export type ShiftTask = {
 
 export type ClientSchedule = {
   client: string;
+  priceBook: string;
+  fund: string;
   timeFrom: number; // unix timestamp
   timeTo: number; // unix
 };
@@ -78,6 +80,12 @@ export interface IAddShift {
   // Todo: add more status later
 }
 
+export interface IBulkDeleteShift {
+  repeatId: string;
+  from: number; // unix timestamp
+  to: number; // unix timestamp
+}
+
 export interface IQueryShift {
   shiftId: string;
 }
@@ -100,6 +108,8 @@ export const validateAddShift = (data: IAddShift) => {
 
   const clientScheduleSchema = Joi.object<ClientSchedule>({
     client: Joi.string().required(),
+    priceBook: Joi.string().required(),
+    fund: Joi.string().required(),
     timeFrom: Joi.number().required(),
     timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
   });
@@ -180,6 +190,16 @@ export const validateAddShift = (data: IAddShift) => {
 export const validateQueryShift = (data: IQueryShift) => {
   const schema = Joi.object<IQueryShift>({
     shiftId: Joi.string().required(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateBulkDeleteShift = (data: IBulkDeleteShift) => {
+  const now = Date.now();
+  const schema = Joi.object<IBulkDeleteShift>({
+    repeatId: Joi.string().required(),
+    from: Joi.number().required().min(now),
+    to: Joi.number().required().min(Joi.ref("from")),
   });
   return schema.validate(data, { stripUnknown: true });
 };
