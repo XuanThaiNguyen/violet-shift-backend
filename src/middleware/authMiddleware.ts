@@ -1,12 +1,19 @@
 import jwt from "jsonwebtoken";
 import { sendResponse } from "../utils/sendResponse";
 import { AuthRequest } from "./type";
+import { logger as winstonLogger } from "../utils/logger";
 import User from "../models/userModel";
 import { AUTH_ERROR_CODE } from "../constants/errorCode";
-
 import type { Handler, NextFunction, Request, Response } from "express";
 
+const middlewareLogger = winstonLogger.child({
+  middleware: "authMiddleware",
+});
+
 export const requireAuth: Handler = (req: Request, res: Response, next: NextFunction) => {
+  const logger = middlewareLogger.child({
+    function: "requireAuth",
+  });
   try {
     const header = req.headers["authorization"];
     if (!header || !header.startsWith("Bearer ")) {
@@ -31,6 +38,11 @@ export const requireAuth: Handler = (req: Request, res: Response, next: NextFunc
     (req as AuthRequest).userId = payload.userId;
     next();
   } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 401,
@@ -41,17 +53,34 @@ export const requireAuth: Handler = (req: Request, res: Response, next: NextFunc
 };
 
 export const isInRoles = (roles: string[]): Handler => {
+  const logger = middlewareLogger.child({
+    function: "isInRoles",
+  });
   return async (req: Request, res: Response, next: NextFunction) => {
-    const user = await User.findById((req as AuthRequest).userId);
-    if (!user || !roles.includes(user?.role.toString())) {
+    try {
+      const user = await User.findById((req as AuthRequest).userId).lean();
+      if (!user || !roles.includes(user?.role.toString())) {
+        return sendResponse({
+          res,
+          statusCode: 403,
+          message: "Unauthorized",
+          code: AUTH_ERROR_CODE.UNAUTHORIZED,
+        });
+      }
+      next();
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.error(error.message, error.stack);
+      } else {
+        logger.error("Unknown error", error);
+      }
       return sendResponse({
         res,
-        statusCode: 403,
-        message: "Unauthorized",
-        code: AUTH_ERROR_CODE.UNAUTHORIZED,
+        statusCode: 500,
+        message: "Internal server error",
+        code: AUTH_ERROR_CODE.INTERNAL_SERVER_ERROR,
       });
     }
-    next();
   };
 };
 

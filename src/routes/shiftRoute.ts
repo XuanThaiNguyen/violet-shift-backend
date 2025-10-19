@@ -1,8 +1,17 @@
 import { Router } from "express";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
-import { addShift, getShift, isAssignedToShift } from "../controllers/shifts/shiftController";
+import {
+  addShift,
+  deleteShift,
+  getShift,
+  isAssignedToShift,
+} from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
-import { clockIn, clockOut, getSchedulesByShiftId as getStaffSchedules } from "../controllers/shifts/staffScheduleController";
+import {
+  clockIn,
+  clockOut,
+  getSchedulesByShiftId as getStaffSchedules,
+} from "../controllers/shifts/staffScheduleController";
 import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
 import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
 
@@ -141,7 +150,7 @@ router.get(
  *   post:
  *     tags:
  *       - Shifts
- *     summary: Update me
+ *     summary: Add shift
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -313,6 +322,36 @@ router.get(
  *
  */
 router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
+
+/**
+ * @swagger
+ * /shifts/{shiftId}:
+ *   delete:
+ *     tags:
+ *       - Shifts
+ *     summary: Delete shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Delete shift
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   example: 'OK'
+ *
+ */
+router.delete("/:shiftId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), deleteShift);
 
 /**
  * @swagger

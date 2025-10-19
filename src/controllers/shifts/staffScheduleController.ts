@@ -19,11 +19,14 @@ export const isAssignedToSchedule = async (req: Request) => {
     const scheduleId = req.params.scheduleId;
     const userId = (req as AuthRequestWithSchedule).userId;
 
-    const schedule = await StaffSchedule.findOne({ _id: scheduleId, user: userId }, undefined, { lean: true, virtuals: true });
+    const schedule = await StaffSchedule.findOne({ _id: scheduleId, user: userId, isDeleted: false }, undefined, { lean: true, virtuals: true });
     if (!schedule) {
       return false;
     }
-    (req as AuthRequestWithSchedule)["schedule"] = schedule;
+    (req as AuthRequestWithSchedule)["schedule"] = {
+      id: schedule._id,
+      ...schedule,
+    };
     return true;
   } catch (error) {
     return false;
@@ -41,7 +44,7 @@ export const getStaffSchedule = async (req: Request, res: Response) => {
 
   try {
     const scheduleId = req.params.scheduleId;
-    const schedule = await StaffSchedule.findById(scheduleId, undefined, { lean: true, virtuals: true });
+    const schedule = await StaffSchedule.findOne({ _id: scheduleId, isDeleted: false }, undefined, { lean: true, virtuals: true });
     if (!schedule) {
       return sendResponse({
         res,
@@ -86,6 +89,7 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
       {
         staff: Types.ObjectId.createFromHexString(staffId),
         timeFrom: { $gte: queryData.from, $lte: clampTo },
+        isDeleted: false,
       },
       undefined,
       {
@@ -122,7 +126,7 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
 export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const schedules = await StaffSchedule.find({ shift: shiftId }, undefined, { lean: true });
+    const schedules = await StaffSchedule.find({ shift: shiftId, isDeleted: false }, undefined, { lean: true });
     return sendResponse({
       res,
       statusCode: 200,
@@ -148,6 +152,7 @@ export const clockIn = async (req: Request, res: Response) => {
       _id: scheduleId,
       staff: userId,
       shift: shiftId,
+      isDeleted: false,
     });
     if (!schedule) {
       return sendResponse({
@@ -237,6 +242,7 @@ export const clockOut = async (req: Request, res: Response) => {
         _id: scheduleId,
         staff: userId,
         shift: shiftId,
+        isDeleted: false,
       },
     );
     if (!schedule) {

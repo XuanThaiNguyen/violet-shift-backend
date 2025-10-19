@@ -1,8 +1,13 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import { connectDB, disconnectDB } from "../config/database";
+import { logger as winstonLogger } from "../utils/logger";
 import Role from "../models/roleModel";
 import { ROLES } from "../constants/roles";
+
+const logger = winstonLogger.child({
+  seed: "addRoles",
+});
 
 async function run(): Promise<void> {
   try {
@@ -21,19 +26,19 @@ async function run(): Promise<void> {
           },
           { upsert: true },
         );
-        console.log(`Role ${role.name} seeded/updated successfully.`);
+        logger.info(`Role ${role.name} seeded/updated successfully.`);
       } catch (error) {
-        console.error(`Role ${role.name} seeded/updated failed:`, error);
+        logger.error(`Role ${role.name} seeded/updated failed:`, error);
       }
     }
 
-    console.log("Roles seeded/updated successfully.");
+    logger.info("Roles seeded/updated successfully.");
   } catch (err) {
-    console.error("Seed roles failed:", err);
+    logger.error("Seed roles failed:", err);
     process.exitCode = 1;
   } finally {
     await disconnectDB();
   }
 }
 
-run().then(() => console.log("Seed roles completed."));
+run().then(() => logger.info("Seed roles completed."));

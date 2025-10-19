@@ -14,6 +14,11 @@ import { AuthRequest } from "../middleware/type";
 import { LOGIN_ERROR_CODE, ME_ERROR_CODE } from "../constants/errorCode";
 import { nanoid } from "nanoid";
 import RedisService from "../services/redis";
+import { logger as winstonLogger } from "../utils/logger";
+
+const controllerLogger = winstonLogger.child({
+  controller: "authController",
+});
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -78,6 +83,9 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const newPassword = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "newPassword",
+  });
   try {
     const { error, value: passwordData } = validateNewPassword(req.body);
     if (error) {
@@ -123,7 +131,11 @@ export const newPassword = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error);
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,
@@ -184,6 +196,9 @@ export const updatePassword = async (req: Request, res: Response) => {
 };
 
 export const forgotPassword = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "forgotPassword",
+  });
   try {
     const { error, value: userData } = validateForgotPassword(req.body);
     if (error) {
@@ -211,7 +226,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     redis.setex(`token:auth_temp:${token}`, 60 * 60 * 0.5, user.id);
     const resetUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
     // TODO: Send email to user
-    console.log("🚀 ~ resetUrl:", resetUrl);
+    logger.info(`Reset URL: ${resetUrl}`);
 
     return sendResponse({
       res,
@@ -221,6 +236,11 @@ export const forgotPassword = async (req: Request, res: Response) => {
       message: "Password reset email sent successfully",
     });
   } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,
@@ -231,16 +251,21 @@ export const forgotPassword = async (req: Request, res: Response) => {
 };
 
 export const logout = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "logout",
+  });
   try {
-    console.log("Logout successfully!");
-
     return sendResponse({
       res,
       statusCode: 200,
       status: API_STATUS.OK,
     });
-  } catch (err) {
-    console.error("Logout error:", err);
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,

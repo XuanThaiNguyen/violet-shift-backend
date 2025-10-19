@@ -17,6 +17,9 @@ export interface IStaffSchedule extends Document {
   signature?: string;
   clientSignatures?: string[];
   // payGroup: string;
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
@@ -71,6 +74,12 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
     clientSignatures: {
       type: [String],
       trim: true,
+    },
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

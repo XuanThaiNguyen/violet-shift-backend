@@ -9,6 +9,11 @@ import Joi from "joi";
 import RedisService from "./services/redis";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
+import { logger as winstonLogger } from "./utils/logger";
+
+const logger = winstonLogger.child({
+  service: "root",
+});
 
 // Validate environment variables
 dotenv.config();
@@ -21,8 +26,10 @@ const envSchema = Joi.object({
 });
 const { error } = envSchema.validate(process.env, { allowUnknown: true });
 if (error) {
-  console.error(error);
+  logger.error(error.message, error.details);
   process.exit(1);
+} else {
+  logger.info("Environment variables validated successfully");
 }
 
 const app = express();
@@ -58,27 +65,27 @@ route(app);
 const server = app.listen(port, () => {
   connectDB();
   RedisService.init();
-  console.log(`Server is running on port ${port}`);
+  logger.info(`Server is running on port ${port}`);
 });
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
   try {
-    console.log(`\nReceived ${signal}. Gracefully shutting down...`);
+    logger.info(`\nReceived ${signal}. Gracefully shutting down...`);
 
     await new Promise<void>((resolve) => {
       server.close(() => {
-        console.log("HTTP server closed");
+        logger.info("HTTP server closed");
         resolve();
       });
     });
 
     await disconnectDB();
     await RedisService.disconnect();
-    console.log("Shutdown complete. Bye!\n");
+    logger.info("Shutdown complete. Bye!\n");
     process.exit(0);
   } catch (err) {
-    console.error("Error during shutdown:", err);
+    logger.error("Error during shutdown:", err);
     process.exit(1);
   }
 };
@@ -87,11 +94,11 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
 process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled Rejection:", reason);
+  logger.error("Unhandled Rejection:", reason);
   gracefulShutdown("unhandledRejection");
 });
 
 process.on("uncaughtException", (error) => {
-  console.error("Uncaught Exception:", error);
+  logger.error("Uncaught Exception:", error);
   gracefulShutdown("uncaughtException");
 });

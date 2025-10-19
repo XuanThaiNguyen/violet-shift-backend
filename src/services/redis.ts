@@ -1,5 +1,9 @@
 import Redis from "ioredis";
+import { logger as winstonLogger } from "../utils/logger";
 
+const logger = winstonLogger.child({
+  service: "Redis",
+});
 class RedisService {
   private static instance: Redis | null;
 
@@ -7,11 +11,11 @@ class RedisService {
     RedisService.instance = new Redis(process.env.REDIS_URL as string);
 
     RedisService.instance.on("error", (err) => {
-      console.error("Redis error:", err);
+      logger.error("Redis error:", err);
     });
 
     RedisService.instance.on("connect", () => {
-      console.log("Redis connected");
+      logger.info("Redis connected");
     });
   }
 

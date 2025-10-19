@@ -8,6 +8,9 @@ export interface IShiftTask extends Document {
   isMandatory: boolean;
   isCompleted: boolean;
   completedAt: Date;
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
@@ -36,6 +39,12 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
   completedAt: {
     type: Date,
     default: null,
+  },
+
+  // soft delete
+  isDeleted: {
+    type: Boolean,
+    default: false,
   },
 });
 

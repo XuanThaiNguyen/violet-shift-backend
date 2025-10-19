@@ -9,6 +9,9 @@ export interface IClientSchedule extends Document {
   timeTo: number; // unix timestamp
   // priceBook
   // fund
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule>(
@@ -36,6 +39,12 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
       required: true,
       type: Number,
       trim: true,
+    },
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

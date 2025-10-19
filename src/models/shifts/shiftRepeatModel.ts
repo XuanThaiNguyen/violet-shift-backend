@@ -4,6 +4,9 @@ export interface IShiftRepeat extends Document {
   pattern: string; // cron pattern [second] [minute] [hour] [day of month] [month] [day of week]
   endDate: number; // unix timestamp
   tz: string; // timezone
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 const ShiftRepeatSchema: Schema<IShiftRepeat> = new Schema<IShiftRepeat>(
@@ -25,6 +28,12 @@ const ShiftRepeatSchema: Schema<IShiftRepeat> = new Schema<IShiftRepeat>(
       type: String,
       trim: true,
       index: true,
+    },
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

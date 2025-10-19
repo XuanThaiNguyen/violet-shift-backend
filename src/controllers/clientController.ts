@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import mongoose, { PipelineStage, Types } from "mongoose";
 import { API_STATUS } from "../constants/apiStatus";
+import { logger as winstonLogger } from "../utils/logger";
 import { CLIENT_ERROR_CODE, LOGIN_ERROR_CODE } from "../constants/errorCode";
 import Client, { IClient } from "../models/clientModel";
 import { sendResponse } from "../utils/sendResponse";
@@ -11,6 +12,10 @@ import {
   validateChangeStatusClient,
   validateQueryClient,
 } from "../validations/clientValidation";
+
+const controllerLogger = winstonLogger.child({
+  controller: "clientController",
+});
 
 export const getClients = async (req: Request, res: Response) => {
   try {
@@ -348,6 +353,9 @@ export const archiveClient = async (req: Request, res: Response) => {
 };
 
 export const changeStatusClient = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "changeStatusClient",
+  });
   try {
     const { error, value: clientData } = validateChangeStatusClient(req.body);
     if (error) {
@@ -381,7 +389,11 @@ export const changeStatusClient = async (req: Request, res: Response) => {
       data: { id: _id, ...rest },
     });
   } catch (error) {
-    console.log("errorerror", error);
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
 
     return sendResponse({
       res,

@@ -7,7 +7,7 @@ import { validateTaskStatus } from "../../validations/shiftTaskValidation";
 export const getTasksByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const _tasks = await ShiftTask.find({ shift: shiftId }, undefined, { lean: true })
+    const _tasks = await ShiftTask.find({ shift: shiftId, isDeleted: false }, undefined, { lean: true })
     const tasks = _tasks.map((task) => {
       task.id = task._id;
       return task;
@@ -43,7 +43,7 @@ export const updateTaskStatus = async (req: Request, res: Response) => {
     }
 
     const updatedTask = await ShiftTask.updateOne(
-      { _id: taskId, shift: shiftId },
+      { _id: taskId, shift: shiftId, isDeleted: false },
       { $set: { isCompleted: taskData.isCompleted }, isNew: true },
     );
     if (!updatedTask) {

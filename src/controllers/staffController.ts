@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import User, { IUser } from "../models/userModel";
 import { sendResponse } from "../utils/sendResponse";
 import { ME_ERROR_CODE, STAFF_ERROR_CODE } from "../constants/errorCode";
+import { logger as winstonLogger } from "../utils/logger";
 import {
   validateInviteStaff,
   validateQueryStaff,
@@ -18,7 +19,14 @@ import { nanoid } from "nanoid";
 import RedisService from "../services/redis";
 // nanoid is ESM-only; use dynamic import in CommonJS environment
 
+const controllerLogger = winstonLogger.child({
+  controller: "staffController",
+});
+
 export const getStaffs = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "getStaffs",
+  });
   try {
     const { error, value: queryData } = validateQueryStaffs(req.query as unknown as IQueryStaffs);
     if (error) {
@@ -104,7 +112,11 @@ export const getStaffs = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error);
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,
@@ -198,6 +210,9 @@ export const updateStaff = async (req: Request, res: Response) => {
 };
 
 export const inviteStaff = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "inviteStaff",
+  });
   try {
     const { error, value: invitationData } = validateInviteStaff(req.body);
     if (error) {
@@ -310,7 +325,7 @@ export const inviteStaff = async (req: Request, res: Response) => {
     }
 
     const setUpUrl = `${process.env.APP_URL}/auth/accept-invitation?token=${token}`;
-    console.log("🚀 ~ setUpUrl:", setUpUrl);
+    logger.info(`Set up URL: ${setUpUrl}`);
 
     return sendResponse({
       res,
@@ -329,6 +344,9 @@ export const inviteStaff = async (req: Request, res: Response) => {
 };
 
 export const acceptInvitation = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "acceptInvitation",
+  });
   try {
     const { error, value: invitationData } = validateAcceptInvitation(
       req.query as unknown as IAcceptInvitation,
@@ -423,7 +441,11 @@ export const acceptInvitation = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.log("🚀 ~ error:", error);
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,

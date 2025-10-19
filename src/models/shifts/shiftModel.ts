@@ -62,6 +62,9 @@ export interface IShift extends Document {
   clientClockOutRequired: boolean;
   staffClockOutRequired: boolean;
 
+  // soft delete
+  isDeleted: boolean;
+
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -171,6 +174,12 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       default: false,
     },
     staffClockOutRequired: {
+      type: Boolean,
+      default: false,
+    },
+
+    // soft delete
+    isDeleted: {
       type: Boolean,
       default: false,
     },

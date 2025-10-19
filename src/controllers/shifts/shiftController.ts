@@ -1,11 +1,10 @@
-import type { NextFunction, Request, Response } from "express";
-import mongoose, { PipelineStage, Types } from "mongoose";
-import { API_STATUS } from "../../constants/apiStatus";
+import type { Request, Response } from "express";
+import mongoose from "mongoose";
 import { sendResponse } from "../../utils/sendResponse";
+import { logger as winstonLogger } from "../../utils/logger";
 import {
   ClientSchedule as ClientScheduleType,
   IAddShift,
-  IQueryShift,
   ShiftTask as ShiftTaskType,
   StaffSchedule as StaffScheduleType,
   validateAddShift,
@@ -21,6 +20,10 @@ import ShiftTask from "../../models/shifts/shiftTaskModel";
 import Client from "../../models/clientModel";
 import { AuthRequest } from "../../middleware/type";
 
+const controllerLogger = winstonLogger.child({
+  controller: "shiftController",
+});
+
 type IRawAddShift = Omit<
   IAddShift,
   "repeat" | "clientSchedules" | "staffSchedules" | "tasks" | "instruction"
@@ -32,7 +35,7 @@ export const isAssignedToShift = async (req: Request) => {
     const { shiftId } = req.params;
     const userId = (req as AuthRequest).userId;
 
-    const schedule = await StaffSchedule.findOne({ shift: shiftId, user: userId });
+    const schedule = await StaffSchedule.findOne({ shift: shiftId, user: userId, isDeleted: false });
     return !!schedule;
   } catch (error) {
     return false;
@@ -40,6 +43,10 @@ export const isAssignedToShift = async (req: Request) => {
 };
 
 export const addShift = async (req: Request, res: Response) => {
+  const logger = winstonLogger.child({
+    controller: "shiftController",
+    function: "addShift",
+  });
   const internalError: Record<string, string> = {
     SHIFT_REPEAT_CREATE_FAILED: "SHIFT_REPEAT_CREATE_FAILED",
     SHIFT_CREATE_FAILED: "SHIFT_CREATE_FAILED",
@@ -218,7 +225,7 @@ export const addShift = async (req: Request, res: Response) => {
       }
 
       if (internalError[error.message]) {
-        console.error(error);
+        logger.error(error.message, error.stack);
       }
 
       return sendResponse({
@@ -249,13 +256,20 @@ export const addShift = async (req: Request, res: Response) => {
 export const getShift = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const shift = await Shift.findOne({ _id: shiftId }, undefined, { lean: true }).populate(
-      [
-        {
-          path: "repeat",
-        },
-      ],
-    )
+    const shift = await Shift.findOne(
+      {
+        _id: shiftId,
+        isDeleted: false,
+      },
+      undefined,
+      {
+        lean: true,
+      },
+    ).populate([
+      {
+        path: "repeat",
+      },
+    ]);
     if (!shift) {
       return sendResponse({
         res,
@@ -271,6 +285,111 @@ export const getShift = async (req: Request, res: Response) => {
       data: shift,
     });
   } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const deleteShift = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "deleteShift",
+  });
+  const INTERNAL_ERROR: Record<string, string> = {
+    SHIFT_NOT_FOUND: "SHIFT_NOT_FOUND",
+    SHIFT_HAPPENED: "SHIFT_HAPPENED",
+  };
+  try {
+    const shiftId = req.params.shiftId;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+
+        // sanity check if shift happened or not
+        const [shift, staffSchedule] = await Promise.all([
+          Shift.findOneAndUpdate(
+            { _id: shiftId },
+            { $set: { isDeleted: true } },
+            { new: true, session },
+          ),
+          StaffSchedule.findOne({ shift: shiftId, isDeleted: false, timeFrom: { $lt: Date.now() } }, undefined, { lean: true }),
+        ]);
+
+        if (!shift) {
+          throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
+        }
+
+        if (shift.timeFrom < Date.now() || staffSchedule) {
+          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
+        }
+
+        const [clientSchedules, staffSchedules, tasks] = await Promise.all([
+          ClientSchedule.updateMany(
+            { shift: shiftId, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+          StaffSchedule.updateMany(
+            { shift: shiftId, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+          ShiftTask.updateMany(
+            { shift: shiftId, isDeleted: false },
+            { $set: { isDeleted: true } },
+            { session },
+          ),
+        ]);
+      });
+    } catch (error) {
+      try {
+        await session.abortTransaction();
+      } catch {}
+      if ((error as Error).message === INTERNAL_ERROR.SHIFT_NOT_FOUND) {
+        return sendResponse({
+          res,
+          statusCode: 404,
+          message: "Shift not found",
+          code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+        });
+      }
+      if ((error as Error).message === INTERNAL_ERROR.SHIFT_HAPPENED) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Shift has happened",
+          code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
+        });
+      }
+      if (error instanceof Error) {
+        logger.error(error.message, error.stack);
+      } else {
+        logger.error("Unknown error", error);
+      }
+      return sendResponse({
+        res,
+        statusCode: 500,
+        message: "Internal server error",
+        code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      });
+    } finally {
+      await session.endSession();
+    }
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Shift deleted successfully",
+      data: "OK",
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
     return sendResponse({
       res,
       statusCode: 500,

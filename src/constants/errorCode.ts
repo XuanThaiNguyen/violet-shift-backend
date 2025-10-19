@@ -33,6 +33,7 @@ export const SHIFT_ERROR_CODE = {
   // 000 for shift
   INVALID_REQUEST: 5000,
   SHIFT_NOT_FOUND: 5001,
+  SHIFT_HAPPENED: 5002,
   // 100 for staff schedules
   STAFF_SCHEDULE_NOT_FOUND: 5010,
 

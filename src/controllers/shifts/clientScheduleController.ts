@@ -7,7 +7,7 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
     const _schedules = await ClientSchedule.find(
-      { shift: shiftId },
+      { shift: shiftId, isDeleted: false },
       {},
       {
         populate: [
