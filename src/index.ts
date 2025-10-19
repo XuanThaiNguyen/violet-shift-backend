@@ -20,6 +20,7 @@ dotenv.config();
 const envSchema = Joi.object({
   PORT: Joi.number().default(3000),
   MONGO_URL: Joi.string().required(),
+  MONGO_LOG_URL: Joi.string().optional(),
   JWT_SECRET: Joi.string().required(),
   PREFIX: Joi.string().default("/"),
   REDIS_URL: Joi.string().required(),
@@ -79,9 +80,11 @@ const gracefulShutdown = async (signal: string) => {
         resolve();
       });
     });
+    await Promise.all([
+      disconnectDB(),
+      RedisService.disconnect(),
+    ]);
 
-    await disconnectDB();
-    await RedisService.disconnect();
     logger.info("Shutdown complete. Bye!\n");
     process.exit(0);
   } catch (err) {

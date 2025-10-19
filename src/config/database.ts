@@ -21,12 +21,6 @@ export const connectDB = async (): Promise<void> => {
 
     await mongoose.connect(mongoURI);
     logger.info("MongoDB is running!");
-
-    process.on("SIGINT", async () => {
-      await mongoose.connection.close();
-      logger.info("MongoDB connection closed through app termination");
-      process.exit(0);
-    });
   } catch (error) {
     logger.error((error as Error).message, (error as Error).stack);
     throw new Error(`MongoDB connection error: ${error}`);
