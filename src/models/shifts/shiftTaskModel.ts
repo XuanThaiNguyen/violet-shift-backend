@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 import { IShift } from "./shiftModel";
 
 export interface IShiftTask extends Document {
-  taskId: string; // for shift repeat bulk update / deletion
+  repetitiveId: string; // for shift repeat bulk update / deletion
   shift: IShift | Types.ObjectId;
   name: string;
   description: string;
@@ -20,7 +20,7 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
     ref: "Shift",
     required: true,
   },
-  taskId: {
+  repetitiveId: {
     type: String,
     index: true,
   },

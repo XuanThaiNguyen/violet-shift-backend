@@ -67,6 +67,7 @@ export const isInRoles = (roles: string[]): Handler => {
           code: AUTH_ERROR_CODE.UNAUTHORIZED,
         });
       }
+      (req as AuthRequest).role = user.role.toString();
       next();
     } catch (error) {
       if (error instanceof Error) {

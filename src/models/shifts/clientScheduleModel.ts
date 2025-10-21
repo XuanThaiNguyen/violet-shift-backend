@@ -11,7 +11,7 @@ export interface IClientSchedule extends Document {
   fund: IFunding | Types.ObjectId;
   timeFrom: number; // unix timestamp
   timeTo: number; // unix timestamp
-  splitId: string; // for shift repeat bulk update / deletion
+  repetitiveId: string; // for shift repeat bulk update / deletion
 
   // soft delete
   isDeleted: boolean;
@@ -43,7 +43,7 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
       ref: "Funding",
       index: true,
     },
-    splitId: {
+    repetitiveId: {
       type: String,
       trim: true,
       index: true,

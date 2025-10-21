@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import mongoose from "mongoose";
+import mongoose, { AnyBulkWriteOperation } from "mongoose";
 import { sendResponse } from "../../utils/sendResponse";
 import { logger as winstonLogger } from "../../utils/logger";
 import {
@@ -9,6 +9,7 @@ import {
   StaffSchedule as StaffScheduleType,
   validateAddShift,
   validateBulkDeleteShift,
+  validateUpdateShift,
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
 import { CronExpressionParser } from "cron-parser";
@@ -19,6 +20,7 @@ import StaffSchedule from "../../models/shifts/staffScheduleModel";
 import ShiftTask from "../../models/shifts/shiftTaskModel";
 import Client from "../../models/clientModel";
 import { AuthRequest } from "../../middleware/type";
+import { nanoid } from "nanoid";
 
 const controllerLogger = winstonLogger.child({
   controller: "shiftController",
@@ -68,8 +70,32 @@ export const addShift = async (req: Request, res: Response) => {
 
     let repeatDoc: any = null;
 
-    const { clientSchedules, staffSchedules, tasks, repeat, ...shiftMetadata } = shiftData;
+    const {
+      clientSchedules: rawClientSchedules,
+      staffSchedules: rawStaffSchedules,
+      tasks: rawTasks,
+      repeat,
+      ...shiftMetadata
+    } = shiftData;
     const rawShiftMetadata: IRawAddShift = shiftMetadata;
+    const clientSchedules = rawClientSchedules.map((clientSchedule) => {
+      return {
+        ...clientSchedule,
+        repetitiveId: nanoid(10),
+      };
+    });
+    const staffSchedules = rawStaffSchedules.map((staffSchedule) => {
+      return {
+        ...staffSchedule,
+        repetitiveId: nanoid(10),
+      };
+    });
+    const tasks = rawTasks.map((task) => {
+      return {
+        ...task,
+        repetitiveId: nanoid(10),
+      };
+    });
 
     const session = await mongoose.startSession();
     try {
@@ -415,6 +441,7 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
     function: "bulkDeleteShift",
   });
   try {
+    const repeatId = req.params.repeatId;
     const { error, value: bulkDeleteData } = validateBulkDeleteShift(req.body);
     if (error) {
       return sendResponse({
@@ -424,7 +451,7 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
         code: SHIFT_ERROR_CODE.INVALID_REQUEST,
       });
     }
-    const { repeatId, from, to } = bulkDeleteData;
+    const { from, to } = bulkDeleteData;
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -505,6 +532,297 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
       message: "Shifts deleted successfully",
       data: "OK",
     });
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(error.message, error.stack);
+    } else {
+      logger.error("Unknown error", error);
+    }
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const updateShift = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "updateShift",
+  });
+  const shiftId = req.params.shiftId;
+  const { error, value: updateData } = validateUpdateShift(req.body);
+  const INTERNAL_ERROR = {
+    SHIFT_NOT_FOUND: "SHIFT_NOT_FOUND",
+    SHIFT_HAPPENED: "SHIFT_HAPPENED",
+    SHIFT_UPDATE_FAILED: "SHIFT_UPDATE_FAILED",
+  };
+  if (error) {
+    return sendResponse({
+      res,
+      statusCode: 400,
+      message: error.details[0].message,
+      code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+    });
+  }
+  try {
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // sanity check if the shift happened or not or not found
+        const [shift, happenedSchedule] = await Promise.all([
+          Shift.findOne({ _id: shiftId, isDeleted: false }, undefined, {
+            lean: true,
+          }),
+          StaffSchedule.findOne(
+            { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
+            undefined,
+            {
+              lean: true,
+            },
+          ),
+        ]);
+        if (!shift) {
+          throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
+        }
+
+        if (shift.timeFrom < Date.now() || happenedSchedule) {
+          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
+        }
+
+        const { clientSchedules, staffSchedules, tasks, ...shiftMetadata } = updateData;
+
+        const clientScheduleOps: AnyBulkWriteOperation<any>[] = [];
+        const staffScheduleOps: AnyBulkWriteOperation<any>[] = [];
+        const taskOps: AnyBulkWriteOperation<any>[] = [];
+
+        clientSchedules.add.forEach((clientSchedule) => {
+          clientScheduleOps.push({
+            insertOne: {
+              document: {
+                client: clientSchedule.client,
+                priceBook: clientSchedule.priceBook,
+                fund: clientSchedule.fund,
+                timeFrom: clientSchedule.timeFrom,
+                timeTo: clientSchedule.timeTo,
+                shift: shiftId,
+                repetitiveId: nanoid(10),
+              },
+              timestamps: true,
+            },
+          });
+        });
+        staffSchedules.add.forEach((staffSchedule) => {
+          staffScheduleOps.push({
+            insertOne: {
+              document: {
+                staff: staffSchedule.staff,
+                paymentMethod: staffSchedule.paymentMethod,
+                timeFrom: staffSchedule.timeFrom,
+                timeTo: staffSchedule.timeTo,
+                shift: shiftId,
+                repetitiveId: nanoid(10),
+              },
+              timestamps: true,
+            },
+          });
+        });
+        tasks.add.forEach((task) => {
+          taskOps.push({
+            insertOne: {
+              document: {
+                name: task.name,
+                description: task.description,
+                isMandatory: task.isMandatory,
+                isCompleted: task.isCompleted,
+                shift: shiftId,
+                repetitiveId: nanoid(10),
+              },
+              timestamps: true,
+            },
+          });
+        });
+
+        clientSchedules.update.forEach((clientSchedule) => {
+          clientScheduleOps.push({
+            updateOne: {
+              filter: { repetitiveId: clientSchedule.repetitiveId },
+              update: {
+                $set: {
+                  timeFrom: clientSchedule.timeFrom,
+                  timeTo: clientSchedule.timeTo,
+                  client: clientSchedule.client,
+                  priceBook: clientSchedule.priceBook,
+                  fund: clientSchedule.fund,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+        staffSchedules.update.forEach((staffSchedule) => {
+          staffScheduleOps.push({
+            updateOne: {
+              filter: { staff: staffSchedule.staff, shift: shiftId },
+              update: {
+                $set: {
+                  timeFrom: staffSchedule.timeFrom,
+                  timeTo: staffSchedule.timeTo,
+                  paymentMethod: staffSchedule.paymentMethod,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+        tasks.update.forEach((task) => {
+          taskOps.push({
+            updateOne: {
+              filter: { repetitiveId: task.repetitiveId },
+              update: {
+                $set: {
+                  name: task.name,
+                  description: task.description,
+                  isMandatory: task.isMandatory,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+
+        clientSchedules.delete.forEach((repetitiveId) => {
+          clientScheduleOps.push({
+            updateOne: {
+              filter: { repetitiveId: repetitiveId },
+              update: {
+                $set: {
+                  isDeleted: true,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+        staffSchedules.delete.map((staffId) => {
+          staffScheduleOps.push({
+            updateOne: {
+              filter: { staff: staffId, shift: shiftId },
+              update: {
+                $set: {
+                  isDeleted: true,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+        tasks.delete.forEach((repetitiveId) => {
+          taskOps.push({
+            updateOne: {
+              filter: { repetitiveId: repetitiveId },
+              update: {
+                $set: {
+                  isDeleted: true,
+                },
+              },
+              timestamps: true,
+            },
+          });
+        });
+
+        const [
+          shiftUpdate,
+          clientOpsStatus,
+          staffScheduleOpsStatus,
+          taskOpsStatus,
+        ] = await Promise.all([
+          shift
+            .$set({
+              shiftType: shiftMetadata.shiftType,
+              additionalShiftTypes: shiftMetadata.additionalShiftTypes,
+              allowances: shiftMetadata.allowances,
+              mileageInvoicing: shiftMetadata.mileageInvoicing,
+              shiftMileage: shiftMetadata.shiftMileage,
+              additionalCost: shiftMetadata.additionalCost,
+              ignoreStaffCount: shiftMetadata.ignoreStaffCount,
+              confirmationRequired: shiftMetadata.confirmationRequired,
+              acceptedDeclinable: shiftMetadata.acceptedDeclinable,
+              timeFrom: shiftMetadata.timeFrom,
+              timeTo: shiftMetadata.timeTo,
+              breakTime: shiftMetadata.breakTime,
+              address: shiftMetadata.address,
+              unitNumber: shiftMetadata.unitNumber,
+              bonus: shiftMetadata.bonus,
+              dropOffAddress: shiftMetadata.dropOffAddress,
+              dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
+
+              mileageCap: shiftMetadata.mileageCap,
+              mileage: shiftMetadata.mileage,
+              isCompanyVehicle: shiftMetadata.isCompanyVehicle,
+              clientClockOutRequired: shiftMetadata.clientClockOutRequired,
+              staffClockOutRequired: shiftMetadata.staffClockOutRequired,
+
+              instruction: shiftMetadata.instruction,
+            })
+            .save({ session }),
+
+          ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
+          StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),
+          ShiftTask.bulkWrite(taskOps, { session, ordered: false }),
+        ]);
+
+        if (clientOpsStatus.insertedCount !== clientScheduleOps.length ||
+          staffScheduleOpsStatus.insertedCount !== staffScheduleOps.length ||
+          taskOpsStatus.insertedCount !== taskOps.length
+        ) {
+          const error = new Error(INTERNAL_ERROR.SHIFT_UPDATE_FAILED);
+          (error as any).cause = {
+            clientOpsStatus,
+            staffScheduleOpsStatus,
+            taskOpsStatus,
+          };
+          throw error;
+        }
+      });
+    } catch (error) {
+      try {
+        await session.abortTransaction();
+        await session.endSession();
+      } catch {}
+
+      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_NOT_FOUND) {
+        return sendResponse({
+          res,
+          statusCode: 404,
+          message: "Shift not found",
+          code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+        });
+      }
+      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_HAPPENED) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Shift has happened",
+          code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
+        });
+      }
+
+      if (error instanceof Error) {
+        logger.error(error.message, error.stack);
+      } else {
+        logger.error("Unknown error", error);
+      }
+      return sendResponse({
+        res,
+        statusCode: 500,
+        message: "Internal server error",
+        code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      });
+    } finally {
+      await session.endSession();
+    }
   } catch (error) {
     if (error instanceof Error) {
       logger.error(error.message, error.stack);

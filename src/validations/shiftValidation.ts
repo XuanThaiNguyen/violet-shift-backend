@@ -5,6 +5,7 @@ import { validateCronExpression } from "cron";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
 
 export type ShiftTask = {
+  repetitiveId?: string; // for shift repeat bulk update / deletion
   name: string;
   description: string;
   isMandatory: boolean;
@@ -12,6 +13,7 @@ export type ShiftTask = {
 };
 
 export type ClientSchedule = {
+  repetitiveId?: string; // for shift repeat bulk update / deletion
   client: string;
   priceBook: string;
   fund: string;
@@ -75,76 +77,130 @@ export interface IAddShift {
   // clock-out information
   clientClockOutRequired: boolean;
   staffClockOutRequired: boolean;
-  clientClockOutTime: number; // unix timestamp
-  staffClockOutTime: number; // unix timestamp
+
   // Todo: add more status later
 }
 
 export interface IBulkDeleteShift {
-  repeatId: string;
   from: number; // unix timestamp
   to: number; // unix timestamp
 }
 
+export interface IUpdateShift {
+  // client schedules
+  clientSchedules: {
+    add: ClientSchedule[];
+    delete: string[]; // repetitiveIds
+    update: ClientSchedule[];
+  };
+
+  // staff schedules
+  staffSchedules: {
+    add: StaffSchedule[];
+    delete: string[]; // repetitiveIds
+    update: StaffSchedule[];
+  };
+
+  // tasks
+  tasks: {
+    add: ShiftTask[];
+    delete: string[]; // repetitiveIds
+    update: ShiftTask[];
+  };
+
+  // instruction
+  instruction: string; // rich text
+
+  // shift information
+  shiftType: ShiftTypesEnum;
+  additionalShiftTypes: ShiftTypesEnum[];
+  allowances: AllowancesEnum[];
+  mileageInvoicing: string[]; // client ids
+  shiftMileage: number;
+  additionalCost: number;
+  ignoreStaffCount: boolean;
+  confirmationRequired: boolean;
+  acceptedDeclinable: boolean;
+
+  // time and location
+  timeFrom: number; // unix timestamp
+  timeTo: number; // unix timestamp
+  breakTime: number; // minutes
+  address: string; // address
+  unitNumber: string; // unit/department/door number
+  bonus: number; // bonus
+  dropOffAddress?: string; // drop off address
+  dropOffUnitNumber?: string; // drop off unit/department/door number
+
+  // mileage information
+  mileageCap: number; // miles
+  mileage: number; // miles
+  isCompanyVehicle: boolean;
+
+  // clock-out information
+  clientClockOutRequired: boolean;
+  staffClockOutRequired: boolean;
+  // Todo: add more status later
+}
 export interface IQueryShift {
   shiftId: string;
 }
 
+const clientScheduleSchema = Joi.object<ClientSchedule>({
+  client: Joi.string().required(),
+  priceBook: Joi.string().required(),
+  fund: Joi.string().required(),
+  timeFrom: Joi.number().required(),
+  timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
+});
+
+const staffScheduleSchema = Joi.object<StaffSchedule>({
+  staff: Joi.string().required(),
+  paymentMethod: Joi.string()
+    .valid(...PaymentMethods)
+    .required(),
+  timeFrom: Joi.number().required(),
+  timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
+});
+
+const shiftTaskSchema = Joi.object<ShiftTask>({
+  name: Joi.string().required(),
+  description: Joi.string().allow(""),
+  isMandatory: Joi.boolean().default(false),
+  isCompleted: Joi.boolean().default(false),
+});
+
+const repeatSchema = Joi.object<Repeat>({
+  pattern: Joi.string()
+    .required()
+    .custom((value, helper) => {
+      const { valid, error } = validateCronExpression(value);
+      if (!valid) {
+        console.error({ error });
+        return helper.error("Invalid cron expression");
+      }
+      return value;
+    }),
+  endDate: Joi.number().required(),
+  tz: Joi.string().required(),
+});
+
 export const validateAddShift = (data: IAddShift) => {
-  const repeatSchema = Joi.object<Repeat>({
-    pattern: Joi.string()
-      .required()
-      .custom((value, helper) => {
-        const { valid, error } = validateCronExpression(value);
-        if (!valid) {
-          console.error({ error });
-          return helper.error("Invalid cron expression");
-        }
-        return value;
-      }),
-    endDate: Joi.number().required(),
-    tz: Joi.string().required(),
-  });
-
-  const clientScheduleSchema = Joi.object<ClientSchedule>({
-    client: Joi.string().required(),
-    priceBook: Joi.string().required(),
-    fund: Joi.string().required(),
-    timeFrom: Joi.number().required(),
-    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
-  });
-
-  const staffScheduleSchema = Joi.object<StaffSchedule>({
-    staff: Joi.string().required(),
-    paymentMethod: Joi.string()
-      .valid(...PaymentMethods)
-      .required(),
-    timeFrom: Joi.number().required(),
-    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
-  });
-
-  const shiftTaskSchema = Joi.object<ShiftTask>({
-    name: Joi.string().required(),
-    description: Joi.string().allow(""),
-    isMandatory: Joi.boolean().default(false),
-    isCompleted: Joi.boolean().default(false),
-  });
-
   const schema = Joi.object<IAddShift>({
     // client schedules
-    clientSchedules: Joi.array().items(clientScheduleSchema).required(),
+    clientSchedules: Joi.array().items(clientScheduleSchema).optional().default([]),
 
     // staff schedules
-    staffSchedules: Joi.array().items(staffScheduleSchema).required(),
-
-    // instruction
-    instruction: Joi.string().allow(""),
+    staffSchedules: Joi.array().items(staffScheduleSchema).optional().default([]),
 
     // tasks
     tasks: Joi.array().items(shiftTaskSchema).default([]),
 
     // repeat
     repeat: repeatSchema.optional(),
+
+    // instruction
+    instruction: Joi.string().allow(""),
 
     // shift information
     shiftType: Joi.string()
@@ -159,9 +215,9 @@ export const validateAddShift = (data: IAddShift) => {
     mileageInvoicing: Joi.array().items(Joi.string()).optional(),
     shiftMileage: Joi.number().optional(),
     additionalCost: Joi.number().optional(),
-    ignoreStaffCount: Joi.boolean().default(false),
-    confirmationRequired: Joi.boolean().default(false),
-    acceptedDeclinable: Joi.boolean().default(false),
+    ignoreStaffCount: Joi.boolean().optional(),
+    confirmationRequired: Joi.boolean().optional(),
+    acceptedDeclinable: Joi.boolean().optional(),
 
     // time and location
     timeFrom: Joi.number().required(),
@@ -176,13 +232,11 @@ export const validateAddShift = (data: IAddShift) => {
     // mileage information
     mileageCap: Joi.number().optional(),
     mileage: Joi.number().optional(),
-    isCompanyVehicle: Joi.boolean().default(false),
+    isCompanyVehicle: Joi.boolean().optional(),
 
     // clock-out information
-    clientClockOutRequired: Joi.boolean().default(false),
-    staffClockOutRequired: Joi.boolean().default(false),
-    clientClockOutTime: Joi.number().optional(),
-    staffClockOutTime: Joi.number().optional(),
+    clientClockOutRequired: Joi.boolean().optional(),
+    staffClockOutRequired: Joi.boolean().optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };
@@ -197,9 +251,95 @@ export const validateQueryShift = (data: IQueryShift) => {
 export const validateBulkDeleteShift = (data: IBulkDeleteShift) => {
   const now = Date.now();
   const schema = Joi.object<IBulkDeleteShift>({
-    repeatId: Joi.string().required(),
     from: Joi.number().required().min(now),
     to: Joi.number().required().min(Joi.ref("from")),
   });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateUpdateShift = (data: IUpdateShift) => {
+  const updateClientScheduleSchema = clientScheduleSchema.keys({
+    repetitiveId: Joi.string().required(),
+  });
+
+  const updateShiftTaskSchema = shiftTaskSchema.keys({
+    repetitiveId: Joi.string().required(),
+  });
+
+  const clientSchema = Joi.object<{
+    add: ClientSchedule[];
+    delete: string[]; // repetitiveIds
+    update: ClientSchedule[];
+  }>({
+    add: Joi.array().items(clientScheduleSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(updateClientScheduleSchema).optional().default([]),
+  });
+
+  const staffSchema = Joi.object<{
+    add: StaffSchedule[];
+    delete: string[]; // staff ids
+    update: StaffSchedule[];
+  }>({
+    add: Joi.array().items(staffScheduleSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(staffScheduleSchema).optional().default([]),
+  });
+
+  const taskSchema = Joi.object<{
+    add: ShiftTask[];
+    delete: string[]; // repetitiveIds
+    update: ShiftTask[];
+  }>({
+    add: Joi.array().items(updateShiftTaskSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(shiftTaskSchema).optional().default([]),
+  });
+
+  const schema = Joi.object<IUpdateShift>({
+    clientSchedules: clientSchema,
+    staffSchedules: staffSchema,
+    tasks: taskSchema,
+
+    // instruction
+    instruction: Joi.string().optional().allow(""),
+
+    // shift information
+    shiftType: Joi.string()
+      .valid(...ShiftTypes)
+      .optional(),
+    additionalShiftTypes: Joi.array()
+      .items(Joi.string().valid(...ShiftTypes))
+      .optional(),
+    allowances: Joi.array()
+      .items(Joi.string().valid(...Allowances))
+      .optional(),
+    mileageInvoicing: Joi.array().items(Joi.string()).optional(),
+    shiftMileage: Joi.number().optional(),
+    additionalCost: Joi.number().optional(),
+    ignoreStaffCount: Joi.boolean().optional(),
+    confirmationRequired: Joi.boolean().optional(),
+    acceptedDeclinable: Joi.boolean().optional(),
+
+    // time and location
+    timeFrom: Joi.number().required(),
+    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
+    breakTime: Joi.number().optional(),
+    address: Joi.string().optional().allow(""),
+    unitNumber: Joi.string().optional().allow(""),
+    bonus: Joi.number().optional(),
+    dropOffAddress: Joi.string().optional().allow(""),
+    dropOffUnitNumber: Joi.string().optional().allow(""),
+
+    // mileage information
+    mileageCap: Joi.number().optional(),
+    mileage: Joi.number().optional(),
+    isCompanyVehicle: Joi.boolean().optional(),
+
+    // clock-out information
+    clientClockOutRequired: Joi.boolean().optional(),
+    staffClockOutRequired: Joi.boolean().optional(),
+  });
+
   return schema.validate(data, { stripUnknown: true });
 };
