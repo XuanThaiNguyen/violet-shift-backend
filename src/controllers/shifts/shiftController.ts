@@ -647,7 +647,7 @@ export const updateShift = async (req: Request, res: Response) => {
         clientSchedules.update.forEach((clientSchedule) => {
           clientScheduleOps.push({
             updateOne: {
-              filter: { repetitiveId: clientSchedule.repetitiveId },
+              filter: { repetitiveId: clientSchedule.repetitiveId, shift: shiftId },
               update: {
                 $set: {
                   timeFrom: clientSchedule.timeFrom,
@@ -679,7 +679,7 @@ export const updateShift = async (req: Request, res: Response) => {
         tasks.update.forEach((task) => {
           taskOps.push({
             updateOne: {
-              filter: { repetitiveId: task.repetitiveId },
+              filter: { repetitiveId: task.repetitiveId, shift: shiftId },
               update: {
                 $set: {
                   name: task.name,
@@ -695,7 +695,7 @@ export const updateShift = async (req: Request, res: Response) => {
         clientSchedules.delete.forEach((repetitiveId) => {
           clientScheduleOps.push({
             updateOne: {
-              filter: { repetitiveId: repetitiveId },
+              filter: { repetitiveId: repetitiveId, shift: shiftId },
               update: {
                 $set: {
                   isDeleted: true,
@@ -721,7 +721,7 @@ export const updateShift = async (req: Request, res: Response) => {
         tasks.delete.forEach((repetitiveId) => {
           taskOps.push({
             updateOne: {
-              filter: { repetitiveId: repetitiveId },
+              filter: { repetitiveId: repetitiveId, shift: shiftId },
               update: {
                 $set: {
                   isDeleted: true,
