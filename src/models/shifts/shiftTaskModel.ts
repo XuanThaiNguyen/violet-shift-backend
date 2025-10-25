@@ -2,12 +2,16 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 import { IShift } from "./shiftModel";
 
 export interface IShiftTask extends Document {
+  repetitiveId: string; // for shift repeat bulk update / deletion
   shift: IShift | Types.ObjectId;
   name: string;
   description: string;
   isMandatory: boolean;
   isCompleted: boolean;
   completedAt: Date;
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
@@ -15,6 +19,10 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
     type: Schema.Types.ObjectId,
     ref: "Shift",
     required: true,
+  },
+  repetitiveId: {
+    type: String,
+    index: true,
   },
   name: {
     type: String,
@@ -36,6 +44,12 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
   completedAt: {
     type: Date,
     default: null,
+  },
+
+  // soft delete
+  isDeleted: {
+    type: Boolean,
+    default: false,
   },
 });
 

@@ -18,9 +18,11 @@ export const ShiftTypes = [
   "24_hour_care",
 ] as const;
 export const Allowances = ["expense", "mileage", "sleepover"] as const;
+export const ShiftStatus = ["booked", "started", "completed"] as const;
 
 export type AllowancesEnum = (typeof Allowances)[number];
 export type ShiftTypesEnum = (typeof ShiftTypes)[number];
+export type ShiftStatusEnum = (typeof ShiftStatus)[number];
 
 export interface IShift extends Document {
   // shift information
@@ -59,9 +61,10 @@ export interface IShift extends Document {
   // clock-out information
   clientClockOutRequired: boolean;
   staffClockOutRequired: boolean;
-  clientClockOutTime: number; // unix timestamp
-  staffClockOutTime: number; // unix timestamp
-  // Todo: add more status later
+
+  // soft delete
+  isDeleted: boolean;
+
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -144,6 +147,7 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
     repeat: {
       type: Types.ObjectId,
       ref: "ShiftRepeat",
+      index: true,
     },
 
     instruction: {
@@ -174,14 +178,13 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       type: Boolean,
       default: false,
     },
-    clientClockOutTime: {
-      type: Number,
-      trim: true,
-    }, // unix timestamp
-    staffClockOutTime: {
-      type: Number,
-      trim: true,
-    }, // unix timestamp
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
   },
   {
     timestamps: true,

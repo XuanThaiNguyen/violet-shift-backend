@@ -12,7 +12,14 @@ export interface IStaffSchedule extends Document {
   timeFrom: number; // unix timestamp
   timeTo: number; // unix timestamp
   clientNames: string[];
+  clocksInAt: number; // unix timestamp
+  clocksOutAt: number; // unix timestamp
+  signature?: string;
+  clientSignatures?: string[];
   // payGroup: string;
+
+  // soft delete
+  isDeleted: boolean;
 }
 
 const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
@@ -52,11 +59,35 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       type: [String],
       trim: true,
     },
+    clocksInAt: {
+      type: Number, // unix timestamp
+      trim: true,
+    },
+    clocksOutAt: {
+      type: Number, // unix timestamp
+      trim: true,
+    },
+    signature: {
+      type: String,
+      trim: true,
+    },
+    clientSignatures: {
+      type: [String],
+      trim: true,
+    },
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   },
 );
+
+StaffScheduleSchema.index({ shift: 1, staff: 1 }, { unique: true });
 
 export const StaffSchedule: Model<IStaffSchedule> = mongoose.model<IStaffSchedule>(
   "StaffSchedule",

@@ -6,7 +6,42 @@ import ClientSchedule from "../../models/shifts/clientScheduleModel";
 export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const schedules = await ClientSchedule.find({ shift: shiftId });
+    const _schedules = await ClientSchedule.find(
+      { shift: shiftId, isDeleted: false },
+      {},
+      {
+        populate: [
+          {
+            path: "client",
+            select: [
+              "firstName",
+              "lastName",
+              "middleName",
+              "preferredName",
+              "email",
+              "phoneNumber",
+              "mobileNumber",
+              "address",
+              "apartmentNumber",
+              "languages",
+            ],
+          },
+          {
+            path: "priceBook",
+            select: ["priceBookTitle", "priceBookId"],
+          },
+          {
+            path: "fund",
+            select: ["name", "startDate", "expireDate", "amount", "balance", "isDefault"],
+          },
+        ],
+        lean: true,
+      },
+    );
+    const schedules = _schedules.map((schedule) => {
+      schedule.id = schedule._id;
+      return schedule;
+    });
     return sendResponse({
       res,
       statusCode: 200,

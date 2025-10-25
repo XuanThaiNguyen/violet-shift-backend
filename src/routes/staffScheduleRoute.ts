@@ -67,7 +67,6 @@ router.use(requireAuth);
  */
 router.get(
   "/:scheduleId",
-  requireAuth,
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToSchedule),
   getStaffSchedule,
 );
@@ -134,10 +133,9 @@ router.get(
  */
 router.get(
   "/staff/:staffId",
-  requireAuth,
   isInRolesOrSelf(
     [ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR],
-    (req) => req.query.staffId === (req as AuthRequest).userId,
+    (req) => req.params.staffId === (req as AuthRequest).userId,
   ),
   getStaffSchedules,
 );

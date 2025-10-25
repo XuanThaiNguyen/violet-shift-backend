@@ -1,8 +1,13 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
+import { logger as winstonLogger } from "../utils/logger";
 import { connectDB, disconnectDB } from "../config/database";
 import User from "../models/userModel";
 import { ROLE_IDS } from "../constants/roles";
+
+const logger = winstonLogger.child({
+  seed: "addSuperAdmin",
+});
 
 async function run(): Promise<void> {
   try {
@@ -37,19 +42,19 @@ async function run(): Promise<void> {
         employmentType: "full_time",
         joinedAt: new Date(),
       });
-      console.log("Admin user created.");
+      logger.info("Admin user created.");
     } else {
       const needsUpdate = !(await bcrypt.compare(adminPassword, existing.password));
       if (needsUpdate) {
         existing.password = hashed;
         await existing.save();
-        console.log("Admin user updated.");
+        logger.info("Admin user updated.");
       } else {
-        console.log("Admin user already exists and is up to date.");
+        logger.info("Admin user already exists and is up to date.");
       }
     }
   } catch (err) {
-    console.error("Seed failed:", err);
+    logger.error("Seed failed:", err);
     process.exitCode = 1;
   } finally {
     await disconnectDB();
@@ -57,5 +62,5 @@ async function run(): Promise<void> {
 }
 
 run().then(() => {
-  console.log("Seed completed.");
+  logger.info("Seed completed.");
 });
