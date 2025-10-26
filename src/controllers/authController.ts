@@ -210,6 +210,20 @@ export const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
+    const redis = RedisService.getInstance();
+    const rateLimit = await redis.get(`rate_limit:forgot_password:${userData.email}`);
+    if (rateLimit) {
+      return sendResponse({
+        res,
+        statusCode: 429,
+        message: "Too many requests",
+        code: LOGIN_ERROR_CODE.TOO_MANY_REQUESTS,
+        data: {
+          retryAfter: parseInt(rateLimit),
+        },
+      });
+    }
+
     const user = await User.findOne({ email: userData.email });
     if (!user) {
       return sendResponse({
@@ -221,9 +235,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
     }
 
     const token = nanoid(10);
-
-    const redis = RedisService.getInstance();
+    const rateLimitExpiry = Date.now() + 60 * 3 * 1000;
     redis.setex(`token:auth_temp:${token}`, 60 * 60 * 0.5, user.id);
+    redis.setex(`rate_limit:forgot_password:${user.email}`, 60 * 3, rateLimitExpiry); // 3 minutes rate limit
     const resetUrl = `${process.env.APP_URL}/auth/new-password?token=${token}`;
     // TODO: Send email to user
     logger.info(`Reset URL: ${resetUrl}`);
@@ -232,7 +246,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
       res,
       statusCode: 200,
       status: API_STATUS.OK,
-      data: API_STATUS.OK,
+      data: {
+        retryAfter: rateLimitExpiry,
+      },
       message: "Password reset email sent successfully",
     });
   } catch (error) {

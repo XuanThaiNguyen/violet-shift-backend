@@ -12,6 +12,7 @@ interface IUpdateUser {
   birthdate: string;
   phoneNumber: string;
   mobileNumber: string;
+  languages: string[];
 }
 
 export const validateUpdateUser = (data: IUpdateUser) => {
@@ -27,6 +28,7 @@ export const validateUpdateUser = (data: IUpdateUser) => {
     birthdate: Joi.date().optional(),
     phoneNumber: Joi.string().optional().allow(""),
     mobileNumber: Joi.string().optional().allow(""),
+    languages: Joi.array().optional(),
   });
   return schema.validate(data, { stripUnknown: true });
 };

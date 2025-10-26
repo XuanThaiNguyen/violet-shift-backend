@@ -15,6 +15,7 @@ export interface IUser extends Document {
   gender: string;
   birthdate: Date;
   joinedAt: Date;
+  languages: string[];
   createdAt: Date;
   updatedAt: Date;
   role: IRole;
@@ -59,6 +60,9 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       type: String,
       enum: ["full_time", "part_time", "contract", "casual", "other"],
       trim: true,
+    },
+    languages: {
+      type: [String],
     },
     hasSetProfile: {
       type: Boolean,
