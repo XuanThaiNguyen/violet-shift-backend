@@ -22,6 +22,7 @@ export interface IUser extends Document {
   avatar: string;
   salutation: string;
   hasSetProfile: boolean;
+  isArchived: boolean;
 }
 
 const UserSchema: Schema<IUser> = new Schema<IUser>(
@@ -101,6 +102,10 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: "Role",
+    },
+    isArchived: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -1,12 +1,15 @@
 import { Router } from "express";
-import { isInRoles, requireAuth } from "../middleware/authMiddleware";
+import { ROLE_IDS } from "../constants/roles";
 import {
   acceptInvitation,
+  archiveStaff,
+  getArchivedStaffs,
+  getStaff,
   getStaffs,
   inviteStaff,
   updateStaff,
 } from "../controllers/staffController";
-import { ROLE_IDS } from "../constants/roles";
+import { isInRoles, requireAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -109,6 +112,9 @@ const router = Router();
  *                       example: 10
  *
  */
+router.get("/archived", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getArchivedStaffs);
+
+router.post("/archive", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), archiveStaff);
 router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs);
 /**
  * @swagger
@@ -330,5 +336,7 @@ router.get("/accept-invitation", acceptInvitation);
  *                       example: full_time
  */
 router.patch("/:staffId", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), updateStaff);
+
+router.get("/:staffId", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaff);
 
 export default router;

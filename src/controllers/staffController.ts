@@ -1,22 +1,24 @@
 import { Request, Response } from "express";
-import User, { IUser } from "../models/userModel";
-import { sendResponse } from "../utils/sendResponse";
+import mongoose, { PipelineStage, Types } from "mongoose";
+import { nanoid } from "nanoid";
+import { API_STATUS } from "../constants/apiStatus";
 import { ME_ERROR_CODE, STAFF_ERROR_CODE } from "../constants/errorCode";
+import MemberInvitation, { IMemberInvitation } from "../models/memberInvitation";
+import User, { IUser } from "../models/userModel";
+import RedisService from "../services/redis";
 import { logger as winstonLogger } from "../utils/logger";
+import { sendResponse } from "../utils/sendResponse";
 import {
+  IAcceptInvitation,
+  IQueryStaff,
+  IQueryStaffs,
+  validateAcceptInvitation,
+  validateArchiveStaff,
   validateInviteStaff,
   validateQueryStaff,
-  IQueryStaff,
-  validateAcceptInvitation,
-  IAcceptInvitation,
-  IQueryStaffs,
   validateQueryStaffs,
   validateUpdateStaff,
 } from "../validations/staffValidation";
-import mongoose, { FilterQuery, PipelineStage, Types } from "mongoose";
-import MemberInvitation, { IMemberInvitation } from "../models/memberInvitation";
-import { nanoid } from "nanoid";
-import RedisService from "../services/redis";
 // nanoid is ESM-only; use dynamic import in CommonJS environment
 
 const controllerLogger = winstonLogger.child({
@@ -47,6 +49,7 @@ export const getStaffs = async (req: Request, res: Response) => {
       {
         $match: {
           $and: [
+            { isArchived: { $ne: true } },
             {
               $or: [
                 { email: { $regex: searchPat } },
@@ -126,6 +129,88 @@ export const getStaffs = async (req: Request, res: Response) => {
   }
 };
 
+export const getArchivedStaffs = async (req: Request, res: Response) => {
+  try {
+    const { error, value: queryData } = validateQueryStaffs(req.query as unknown as IQueryStaffs);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: STAFF_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    // Prepare pipeline
+    const perPage = Math.min(queryData.perPage, 100);
+    const skip = (+queryData.page - 1) * perPage;
+    const searchPat = new RegExp(queryData.query || "", "i");
+
+    const pipelines: PipelineStage[] = [
+      {
+        $match: {
+          $and: [
+            { isArchived: { $ne: false } },
+            {
+              $or: [
+                { email: { $regex: searchPat } },
+                // maybe name here
+              ],
+            },
+          ],
+        },
+      },
+      {
+        $sort: {
+          [queryData.sort]: queryData.order === "asc" ? 1 : -1,
+        },
+      },
+      {
+        $facet: {
+          pagination: [
+            { $count: "total" },
+            { $addFields: { page: queryData.page } },
+            { $addFields: { perPage: perPage } },
+          ],
+          data: [{ $skip: skip }, { $limit: +perPage }, { $project: { __v: 0, password: 0 } }],
+        },
+      },
+    ];
+
+    const [facet] = await User.aggregate(pipelines).exec();
+    const rawUsers = Array.isArray(facet?.data)
+      ? (facet.data as mongoose.Document<unknown, {}, IUser>[])
+      : [];
+    const users = rawUsers.map((user) => {
+      user.id = (user._id as Types.ObjectId).toString();
+      delete user._id;
+      return user;
+    });
+    const pagination =
+      Array.isArray(facet?.pagination) && facet.pagination[0]
+        ? facet.pagination[0]
+        : { total: 0, page: queryData.page, perPage: perPage };
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "User fetched successfully",
+      data: {
+        data: users,
+        pagination: pagination,
+      },
+    });
+  } catch (error) {
+    console.log("errorrrrr", error);
+
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
 export const getStaff = async (req: Request, res: Response) => {
   try {
     const { error, value: queryData } = validateQueryStaff(req.params as unknown as IQueryStaff);
@@ -180,7 +265,11 @@ export const updateStaff = async (req: Request, res: Response) => {
       });
     }
 
-    const user = await User.findOneAndUpdate({ _id: staffId }, { $set: staffData }, { new: true, lean: true });
+    const user = await User.findOneAndUpdate(
+      { _id: staffId },
+      { $set: staffData },
+      { new: true, lean: true },
+    );
     if (!user) {
       return sendResponse({
         res,
@@ -451,6 +540,49 @@ export const acceptInvitation = async (req: Request, res: Response) => {
       statusCode: 500,
       message: "Internal server error",
       code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const archiveStaff = async (req: Request, res: Response) => {
+  try {
+    const { error, value: staffData } = validateArchiveStaff(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        code: STAFF_ERROR_CODE.INVALID_REQUEST,
+        message: error.details[0].message,
+      });
+    }
+
+    const updatedClient = await User.findByIdAndUpdate(
+      staffData.id,
+      { isArchived: staffData.isArchived },
+      { new: true },
+    );
+    if (!updatedClient) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        code: STAFF_ERROR_CODE.USER_NOT_FOUND,
+        message: "Staff not found",
+      });
+    }
+
+    const { _id, ...rest } = updatedClient.toObject();
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      data: { id: _id, ...rest },
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      code: STAFF_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
     });
   }
 };

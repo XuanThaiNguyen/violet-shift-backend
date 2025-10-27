@@ -49,6 +49,11 @@ export interface IUpdateStaff {
   employmentType: string;
 }
 
+export interface IArchiveStaff {
+  id: string;
+  isArchived: boolean;
+}
+
 export const validateQueryStaffs = (data: IQueryStaffs) => {
   const schema = Joi.object<IQueryStaffs>({
     query: Joi.string().optional().allow(""),
@@ -142,6 +147,14 @@ export const validateUpdateStaff = (data: IUpdateStaff) => {
     gender: Joi.string().optional(),
     birthdate: Joi.date().optional(),
     employmentType: Joi.string().optional(),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateArchiveStaff = (data: IArchiveStaff) => {
+  const schema = Joi.object<IArchiveStaff>({
+    id: Joi.string().required(),
+    isArchived: Joi.boolean().required(),
   });
   return schema.validate(data, { stripUnknown: true });
 };
