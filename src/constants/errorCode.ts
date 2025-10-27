@@ -8,10 +8,11 @@ export const LOGIN_ERROR_CODE = {
 };
 
 export const ME_ERROR_CODE = {
-  USER_NOT_FOUND: 2000, // user not found
-  INVALID_USER_UPDATE_PAYLOAD: 2001, // invalid user update payload
+  INVALID_REQUEST: 2000, // invalid request
+  USER_NOT_FOUND: 2001, // user not found
+  INVALID_USER_UPDATE_PAYLOAD: 2002, // invalid user update payload
 
-  INTERNAL_SERVER_ERROR: 2002,
+  INTERNAL_SERVER_ERROR: 2009,
 };
 
 export const STAFF_ERROR_CODE = {
