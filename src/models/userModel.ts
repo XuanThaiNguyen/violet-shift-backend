@@ -5,6 +5,7 @@ export interface IUser extends Document {
   firstName: string;
   lastName: string;
   middleName: string;
+  fullName: string;
   preferredName: string;
   mobileNumber: string;
   phoneNumber: string;
@@ -47,6 +48,15 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     middleName: {
       type: String,
       trim: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+      default: function () {
+        return this.middleName
+          ? `${this.firstName} ${this.middleName} ${this.lastName}`
+          : `${this.firstName} ${this.lastName}`;
+      },
     },
     preferredName: {
       type: String,

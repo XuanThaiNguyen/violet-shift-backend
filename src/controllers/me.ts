@@ -42,10 +42,21 @@ export const updateMe = async (req: Request, res: Response) => {
     userData.id = (req as AuthRequest).userId;
     const updatedUser = await User.findOneAndUpdate(
       { _id: userData.id },
-      {
-        ...userData,
-        hasSetProfile: true,
-      },
+      [{
+        $set: {
+          ...userData,
+          fullName: {
+            $concat: [
+              userData.firstName ? userData.firstName : { $ifNull: ["$firstName", ""] },
+              userData.firstName ? " " :{ $cond: [{ $gt: [{$ifNull: ["$firstName", ""]}, ""] }, " ", ""] },
+              userData.middleName ? userData.middleName : { $ifNull: ["$middleName", ""] },
+              userData.middleName ? " " : { $cond: [{ $gt: [{$ifNull: ["$middleName", ""]}, ""] }, " ", ""] },
+              userData.lastName ? userData.lastName : { $ifNull: ["$lastName", ""] },
+            ],
+          },
+          hasSetProfile: true,
+        },
+      }],
       {
         projection: { password: 0 },
         new: true,

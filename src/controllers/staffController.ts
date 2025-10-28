@@ -53,7 +53,8 @@ export const getStaffs = async (req: Request, res: Response) => {
             {
               $or: [
                 { email: { $regex: searchPat } },
-                // maybe name here
+                { fullName: { $regex: searchPat } },
+                { preferredName: { $regex: searchPat } },
               ],
             },
             queryData["roles[]"]
@@ -154,7 +155,8 @@ export const getArchivedStaffs = async (req: Request, res: Response) => {
             {
               $or: [
                 { email: { $regex: searchPat } },
-                // maybe name here
+                { fullName: { $regex: searchPat } },
+                { preferredName: { $regex: searchPat } },
               ],
             },
           ],
