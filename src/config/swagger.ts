@@ -1,8 +1,10 @@
-import swaggerJsdoc from "swagger-jsdoc";
+import swaggerJsdoc, { SwaggerDefinition } from "swagger-jsdoc";
 import dotenv from "dotenv";
+import { SwaggerOptions } from "swagger-ui-express";
+import swaggerJSDoc from "swagger-jsdoc";
 dotenv.config();
 
-const swaggerDefinition = {
+const swaggerDefinition: SwaggerDefinition = {
   openapi: "3.0.0",
   info: {
     title: "Violet Shift API",
@@ -24,9 +26,13 @@ const swaggerDefinition = {
       description: "Base API prefix",
     },
   ],
+  externalDocs: {
+    url: `${process.env.API_PREFIX || ""}/swagger.json`,
+  }
 };
 
-const options = {
+const options: swaggerJSDoc.Options = {
+
   definition: swaggerDefinition,
   apis: ["src/routes/**/*.ts", "src/controllers/**/*.ts"],
 };

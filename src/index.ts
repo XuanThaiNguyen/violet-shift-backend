@@ -56,8 +56,12 @@ app.use(
 app.use(morgan("dev"));
 
 // Swagger
-const docsPath = (process.env.API_PREFIX || "") + "/docs";
+const prefix = process.env.API_PREFIX || "";
+const docsPath = prefix + "/docs";
 app.use(docsPath, swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get(`${prefix}/swagger.json`, (req, res) => {
+  res.json(swaggerSpec);
+});
 
 const port = process.env.PORT || 3000;
 
