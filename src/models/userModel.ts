@@ -52,11 +52,6 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     fullName: {
       type: String,
       trim: true,
-      default: function () {
-        return this.middleName
-          ? `${this.firstName} ${this.middleName} ${this.lastName}`
-          : `${this.firstName} ${this.lastName}`;
-      },
     },
     preferredName: {
       type: String,
