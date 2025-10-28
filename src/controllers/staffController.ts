@@ -363,6 +363,9 @@ export const inviteStaff = async (req: Request, res: Response) => {
               firstName: invitationData.firstName,
               lastName: invitationData.lastName,
               middleName: invitationData.middleName,
+              fullName: invitationData.middleName
+                ? `${invitationData.firstName} ${invitationData.middleName} ${invitationData.lastName}`
+                : `${invitationData.firstName} ${invitationData.lastName}`,
             },
           },
           { upsert: true, new: true, session },
