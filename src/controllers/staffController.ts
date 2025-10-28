@@ -53,7 +53,8 @@ export const getStaffs = async (req: Request, res: Response) => {
             {
               $or: [
                 { email: { $regex: searchPat } },
-                // maybe name here
+                { fullName: { $regex: searchPat } },
+                { preferredName: { $regex: searchPat } },
               ],
             },
             queryData["roles[]"]
@@ -154,7 +155,8 @@ export const getArchivedStaffs = async (req: Request, res: Response) => {
             {
               $or: [
                 { email: { $regex: searchPat } },
-                // maybe name here
+                { fullName: { $regex: searchPat } },
+                { preferredName: { $regex: searchPat } },
               ],
             },
           ],
@@ -361,6 +363,9 @@ export const inviteStaff = async (req: Request, res: Response) => {
               firstName: invitationData.firstName,
               lastName: invitationData.lastName,
               middleName: invitationData.middleName,
+              fullName: invitationData.middleName
+                ? `${invitationData.firstName} ${invitationData.middleName} ${invitationData.lastName}`
+                : `${invitationData.firstName} ${invitationData.lastName}`,
             },
           },
           { upsert: true, new: true, session },
