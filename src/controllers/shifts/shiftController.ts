@@ -39,7 +39,7 @@ export const isAssignedToShift = async (req: Request) => {
 
     const schedule = await StaffSchedule.findOne({
       shift: shiftId,
-      user: userId,
+      staff: userId,
       isDeleted: false,
     });
     return !!schedule;
@@ -732,48 +732,45 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        const [
-          shiftUpdate,
-          clientOpsStatus,
-          staffScheduleOpsStatus,
-          taskOpsStatus,
-        ] = await Promise.all([
-          shift
-            .$set({
-              shiftType: shiftMetadata.shiftType,
-              additionalShiftTypes: shiftMetadata.additionalShiftTypes,
-              allowances: shiftMetadata.allowances,
-              mileageInvoicing: shiftMetadata.mileageInvoicing,
-              shiftMileage: shiftMetadata.shiftMileage,
-              additionalCost: shiftMetadata.additionalCost,
-              ignoreStaffCount: shiftMetadata.ignoreStaffCount,
-              confirmationRequired: shiftMetadata.confirmationRequired,
-              acceptedDeclinable: shiftMetadata.acceptedDeclinable,
-              timeFrom: shiftMetadata.timeFrom,
-              timeTo: shiftMetadata.timeTo,
-              breakTime: shiftMetadata.breakTime,
-              address: shiftMetadata.address,
-              unitNumber: shiftMetadata.unitNumber,
-              bonus: shiftMetadata.bonus,
-              dropOffAddress: shiftMetadata.dropOffAddress,
-              dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
+        const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
+          await Promise.all([
+            shift
+              .$set({
+                shiftType: shiftMetadata.shiftType,
+                additionalShiftTypes: shiftMetadata.additionalShiftTypes,
+                allowances: shiftMetadata.allowances,
+                mileageInvoicing: shiftMetadata.mileageInvoicing,
+                shiftMileage: shiftMetadata.shiftMileage,
+                additionalCost: shiftMetadata.additionalCost,
+                ignoreStaffCount: shiftMetadata.ignoreStaffCount,
+                confirmationRequired: shiftMetadata.confirmationRequired,
+                acceptedDeclinable: shiftMetadata.acceptedDeclinable,
+                timeFrom: shiftMetadata.timeFrom,
+                timeTo: shiftMetadata.timeTo,
+                breakTime: shiftMetadata.breakTime,
+                address: shiftMetadata.address,
+                unitNumber: shiftMetadata.unitNumber,
+                bonus: shiftMetadata.bonus,
+                dropOffAddress: shiftMetadata.dropOffAddress,
+                dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
 
-              mileageCap: shiftMetadata.mileageCap,
-              mileage: shiftMetadata.mileage,
-              isCompanyVehicle: shiftMetadata.isCompanyVehicle,
-              clientClockOutRequired: shiftMetadata.clientClockOutRequired,
-              staffClockOutRequired: shiftMetadata.staffClockOutRequired,
+                mileageCap: shiftMetadata.mileageCap,
+                mileage: shiftMetadata.mileage,
+                isCompanyVehicle: shiftMetadata.isCompanyVehicle,
+                clientClockOutRequired: shiftMetadata.clientClockOutRequired,
+                staffClockOutRequired: shiftMetadata.staffClockOutRequired,
 
-              instruction: shiftMetadata.instruction,
-            })
-            .save({ session }),
+                instruction: shiftMetadata.instruction,
+              })
+              .save({ session }),
 
-          ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
-          StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),
-          ShiftTask.bulkWrite(taskOps, { session, ordered: false }),
-        ]);
+            ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
+            StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),
+            ShiftTask.bulkWrite(taskOps, { session, ordered: false }),
+          ]);
 
-        if (clientOpsStatus.insertedCount !== clientScheduleOps.length ||
+        if (
+          clientOpsStatus.insertedCount !== clientScheduleOps.length ||
           staffScheduleOpsStatus.insertedCount !== staffScheduleOps.length ||
           taskOpsStatus.insertedCount !== taskOps.length
         ) {
