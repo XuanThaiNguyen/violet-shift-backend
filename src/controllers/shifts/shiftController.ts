@@ -572,9 +572,7 @@ export const updateShift = async (req: Request, res: Response) => {
       await session.withTransaction(async () => {
         // sanity check if the shift happened or not or not found
         const [shift, happenedSchedule] = await Promise.all([
-          Shift.findOne({ _id: shiftId, isDeleted: false }, undefined, {
-            lean: true,
-          }),
+          Shift.findOne({ _id: shiftId, isDeleted: false }, undefined),
           StaffSchedule.findOne(
             { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
             undefined,
@@ -597,7 +595,7 @@ export const updateShift = async (req: Request, res: Response) => {
         const staffScheduleOps: AnyBulkWriteOperation<any>[] = [];
         const taskOps: AnyBulkWriteOperation<any>[] = [];
 
-        clientSchedules.add.forEach((clientSchedule) => {
+        clientSchedules?.add?.forEach((clientSchedule) => {
           clientScheduleOps.push({
             insertOne: {
               document: {
@@ -613,7 +611,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        staffSchedules.add.forEach((staffSchedule) => {
+        staffSchedules?.add?.forEach((staffSchedule) => {
           staffScheduleOps.push({
             insertOne: {
               document: {
@@ -628,7 +626,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        tasks.add.forEach((task) => {
+        tasks?.add?.forEach((task) => {
           taskOps.push({
             insertOne: {
               document: {
@@ -644,7 +642,7 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        clientSchedules.update.forEach((clientSchedule) => {
+        clientSchedules?.update?.forEach((clientSchedule) => {
           clientScheduleOps.push({
             updateOne: {
               filter: { repetitiveId: clientSchedule.repetitiveId, shift: shiftId },
@@ -661,7 +659,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        staffSchedules.update.forEach((staffSchedule) => {
+        staffSchedules?.update?.forEach((staffSchedule) => {
           staffScheduleOps.push({
             updateOne: {
               filter: { staff: staffSchedule.staff, shift: shiftId },
@@ -676,7 +674,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        tasks.update.forEach((task) => {
+        tasks?.update?.forEach((task) => {
           taskOps.push({
             updateOne: {
               filter: { repetitiveId: task.repetitiveId, shift: shiftId },
@@ -692,7 +690,7 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        clientSchedules.delete.forEach((repetitiveId) => {
+        clientSchedules?.delete?.forEach((repetitiveId) => {
           clientScheduleOps.push({
             updateOne: {
               filter: { repetitiveId: repetitiveId, shift: shiftId },
@@ -705,7 +703,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        staffSchedules.delete.map((staffId) => {
+        staffSchedules?.delete?.map((staffId) => {
           staffScheduleOps.push({
             updateOne: {
               filter: { staff: staffId, shift: shiftId },
@@ -718,7 +716,7 @@ export const updateShift = async (req: Request, res: Response) => {
             },
           });
         });
-        tasks.delete.forEach((repetitiveId) => {
+        tasks?.delete?.forEach((repetitiveId) => {
           taskOps.push({
             updateOne: {
               filter: { repetitiveId: repetitiveId, shift: shiftId },
@@ -734,8 +732,7 @@ export const updateShift = async (req: Request, res: Response) => {
 
         const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
           await Promise.all([
-            shift
-              .$set({
+            shift.$set({
                 shiftType: shiftMetadata.shiftType,
                 additionalShiftTypes: shiftMetadata.additionalShiftTypes,
                 allowances: shiftMetadata.allowances,
@@ -782,6 +779,12 @@ export const updateShift = async (req: Request, res: Response) => {
           };
           throw error;
         }
+      });
+      return sendResponse({
+        res,
+        statusCode: 200,
+        message: "Shift updated successfully",
+        data: "OK",
       });
     } catch (error) {
       try {
