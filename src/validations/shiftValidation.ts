@@ -97,7 +97,7 @@ export interface IUpdateShift {
   // staff schedules
   staffSchedules: {
     add: StaffSchedule[];
-    delete: string[]; // repetitiveIds
+    delete: string[]; // staff ids
     update: StaffSchedule[];
   };
 

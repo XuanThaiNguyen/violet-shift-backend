@@ -39,9 +39,17 @@ export const getMe = async (req: Request, res: Response) => {
 export const updateMe = async (req: Request, res: Response) => {
   try {
     const { error, value: userData } = validateUpdateUser(req.body);
-    userData.id = (req as AuthRequest).userId;
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: ME_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+    const userId = (req as AuthRequest).userId;
     const updatedUser = await User.findOneAndUpdate(
-      { _id: userData.id },
+      { _id: userId},
       [{
         $set: {
           ...userData,
@@ -81,6 +89,7 @@ export const updateMe = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
+    console.log("🚀 ~ error:", error)
     return sendResponse({
       res,
       statusCode: 500,
