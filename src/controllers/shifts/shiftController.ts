@@ -770,9 +770,9 @@ export const updateShift = async (req: Request, res: Response) => {
           ]);
 
         if (
-          clientOpsStatus.insertedCount !== clientScheduleOps.length ||
-          staffScheduleOpsStatus.insertedCount !== staffScheduleOps.length ||
-          taskOpsStatus.insertedCount !== taskOps.length
+          clientOpsStatus.modifiedCount !== clientScheduleOps.length ||
+          staffScheduleOpsStatus.modifiedCount !== staffScheduleOps.length ||
+          taskOpsStatus.modifiedCount !== taskOps.length
         ) {
           const error = new Error(INTERNAL_ERROR.SHIFT_UPDATE_FAILED);
           (error as any).cause = {
@@ -782,12 +782,6 @@ export const updateShift = async (req: Request, res: Response) => {
           };
           throw error;
         }
-      });
-      return sendResponse({
-        res,
-        statusCode: 200,
-        message: "Shift updated successfully",
-        data: "OK",
       });
     } catch (error) {
       try {
@@ -826,6 +820,13 @@ export const updateShift = async (req: Request, res: Response) => {
     } finally {
       await session.endSession();
     }
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Shift updated successfully",
+      data: "OK",
+    });
   } catch (error) {
     if (error instanceof Error) {
       logger.error(error.message, error.stack);
