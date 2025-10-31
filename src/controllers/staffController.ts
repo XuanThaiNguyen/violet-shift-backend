@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import mongoose, { PipelineStage, Types } from "mongoose";
+import mongoose, { FilterQuery, PipelineStage, Types } from "mongoose";
 import { nanoid } from "nanoid";
 import { API_STATUS } from "../constants/apiStatus";
 import { ME_ERROR_CODE, STAFF_ERROR_CODE } from "../constants/errorCode";
@@ -44,36 +44,52 @@ export const getStaffs = async (req: Request, res: Response) => {
     const perPage = Math.min(queryData.perPage, 100);
     const skip = (+queryData.page - 1) * perPage;
     const searchPat = new RegExp(queryData.query || "", "i");
+    const filterQuery: FilterQuery<IUser>[] = [
+      {
+        $or: [
+          { email: { $regex: searchPat } },
+          { fullName: { $regex: searchPat } },
+          { preferredName: { $regex: searchPat } },
+        ],
+      },
+    ];
+
+    if (typeof queryData.archived === "boolean") {
+      if (queryData.archived) {
+        filterQuery.unshift({ isArchived: true });
+      } else {
+        filterQuery.unshift({ isArchived: { $ne: true } });
+      }
+    }
+
+    if (typeof queryData.joined === "boolean") {
+      if (queryData.joined) {
+        filterQuery.unshift({ joinedAt: { $gt: new Date(0) } });
+      } else {
+        filterQuery.unshift({ joinedAt: { $not: { $gt: new Date(0) } } });
+      }
+    }
+
+    if (queryData["roles[]"]) {
+      filterQuery.push({
+        role: {
+          $in: queryData["roles[]"]?.map((role) => Types.ObjectId.createFromHexString(role)),
+        },
+      });
+    }
+
+    if (queryData["employmentTypes[]"]) {
+      filterQuery.push({
+        employmentType: {
+          $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
+        },
+      });
+    }
 
     const pipelines: PipelineStage[] = [
       {
         $match: {
-          $and: [
-            { isArchived: { $ne: true } },
-            {
-              $or: [
-                { email: { $regex: searchPat } },
-                { fullName: { $regex: searchPat } },
-                { preferredName: { $regex: searchPat } },
-              ],
-            },
-            queryData["roles[]"]
-              ? {
-                  role: {
-                    $in: queryData["roles[]"]?.map((role) =>
-                      Types.ObjectId.createFromHexString(role),
-                    ),
-                  },
-                }
-              : {},
-            queryData["employmentTypes[]"]
-              ? {
-                  employmentType: {
-                    $in: queryData["employmentTypes[]"]?.map((employmentType) => employmentType),
-                  },
-                }
-              : {},
-          ],
+          $and: filterQuery,
         },
       },
       {

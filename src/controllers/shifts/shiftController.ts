@@ -732,7 +732,9 @@ export const updateShift = async (req: Request, res: Response) => {
 
         const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
           await Promise.all([
-            shift.$set({
+            shift.updateOne(
+              {
+                _id: shiftId,
                 shiftType: shiftMetadata.shiftType,
                 additionalShiftTypes: shiftMetadata.additionalShiftTypes,
                 allowances: shiftMetadata.allowances,
@@ -758,8 +760,9 @@ export const updateShift = async (req: Request, res: Response) => {
                 staffClockOutRequired: shiftMetadata.staffClockOutRequired,
 
                 instruction: shiftMetadata.instruction,
-              })
-              .save({ session }),
+              },
+              { session, new: true },
+            ),
 
             ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
             StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),

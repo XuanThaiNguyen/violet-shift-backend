@@ -319,7 +319,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *   put:
  *     tags:
  *       - Shifts
- *     summary: Update task status by shift ID and task ID
+ *     summary: Update shift information
  *     security:
  *       - bearerAuth: []
  *     parameters:

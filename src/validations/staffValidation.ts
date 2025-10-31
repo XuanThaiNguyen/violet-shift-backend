@@ -8,6 +8,8 @@ export interface IQueryStaffs {
   sort: "email" | "createdAt" | "joinedAt";
   "roles[]"?: string[];
   "employmentTypes[]"?: string[];
+  joined?: boolean;
+  archived?: boolean;
 }
 export interface IQueryStaff {
   staffId: string;
@@ -57,6 +59,8 @@ export interface IArchiveStaff {
 export const validateQueryStaffs = (data: IQueryStaffs) => {
   const schema = Joi.object<IQueryStaffs>({
     query: Joi.string().optional().allow(""),
+    joined: Joi.boolean().optional(),
+    archived: Joi.boolean().optional(),
     page: Joi.number().default(1),
     perPage: Joi.number().default(10).max(100),
     order: Joi.string().default("asc").valid("asc", "desc"),
