@@ -59,23 +59,16 @@ const PriceBookRuleSchema: Schema<IPriceBookRule> = new Schema<IPriceBookRule>({
 });
 
 export interface IPriceBook extends Document {
-  priceBookTitle: string;
-  priceBookId: string;
+  name: string;
   isArchived: boolean;
   rules: IPriceBookRule[];
 }
 
 const PriceBookSchema: Schema<IPriceBook> = new Schema<IPriceBook>(
   {
-    priceBookTitle: {
+    name: {
       type: String,
       required: true,
-      trim: true,
-    },
-    priceBookId: {
-      type: String,
-      required: true,
-      unique: true,
       trim: true,
     },
     isArchived: {

@@ -2,8 +2,7 @@ import Joi from "joi";
 import { IPriceBookRule } from "../models/priceBookModel";
 
 interface IAddPriceBook {
-  priceBookTitle: string;
-  priceBookId: string;
+  name: string;
   rules: IPriceBookRule[];
 }
 
@@ -13,15 +12,13 @@ interface IArchivePriceBook {
 }
 
 interface IUpdatePriceBook {
-  priceBookTitle?: string;
-  priceBookId?: string;
+  name?: string;
   rules?: IPriceBookRule[];
 }
 
 export const validateAddPriceBook = (data: IAddPriceBook) => {
   const schema = Joi.object<IAddPriceBook>({
-    priceBookTitle: Joi.string().required(),
-    priceBookId: Joi.string().required(),
+    name: Joi.string().required(),
     rules: Joi.array().items(
       Joi.object<IPriceBookRule>({
         dayOfWeek: Joi.string().valid("holidays", "weekdays", "saturday", "sunday").required(),
@@ -48,8 +45,7 @@ export const validateArchivePriceBook = (data: IArchivePriceBook) => {
 
 export const validateUpdatePriceBook = (data: IUpdatePriceBook) => {
   const schema = Joi.object<IUpdatePriceBook>({
-    priceBookTitle: Joi.string().optional(),
-    priceBookId: Joi.string().optional(),
+    name: Joi.string().optional(),
     rules: Joi.array().items(
       Joi.object<IPriceBookRule>({
         dayOfWeek: Joi.string().valid("holidays", "weekdays", "saturday", "sunday").required(),

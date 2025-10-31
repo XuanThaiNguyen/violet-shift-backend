@@ -19,7 +19,7 @@ export const addPriceBook = async (req: Request, res: Response) => {
         code: PRICE_BOOK_ERROR_CODE.INVALID_REQUEST,
       });
 
-    const existingPriceBook = await PriceBook.findOne({ priceBookId: priceBookData.priceBookId });
+    const existingPriceBook = await PriceBook.findOne({ name: priceBookData.name });
     if (existingPriceBook) {
       return sendResponse({
         res,

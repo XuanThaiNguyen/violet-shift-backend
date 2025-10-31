@@ -28,7 +28,7 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
           },
           {
             path: "priceBook",
-            select: ["priceBookTitle", "priceBookId"],
+            select: ["name"],
           },
           {
             path: "fund",
