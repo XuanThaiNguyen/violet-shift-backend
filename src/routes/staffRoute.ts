@@ -61,6 +61,15 @@ const router = Router();
  *         type: array
  *         items:
  *           type: string
+ *       - name: joined
+ *         in: query
+ *         description: Joined status to filter by
+ *         required: false
+ *         type: boolean
+ *       - name: archived
+ *         in: query
+ *         description: Archived status to filter by
+ *         required: false
  *     responses:
  *       200:
  *         description: Get staffs
