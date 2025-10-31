@@ -39,8 +39,28 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
       },
     );
     const schedules = _schedules.map((schedule) => {
-      schedule.id = schedule._id;
-      return schedule;
+      const priceBookId =
+        typeof schedule.priceBook === "object" && "_id" in schedule.priceBook
+          ? schedule.priceBook._id
+          : schedule.priceBook;
+
+      const fundId =
+        typeof schedule.fund === "object" && "_id" in schedule.fund
+          ? schedule.fund._id
+          : schedule.fund;
+
+      return {
+        ...schedule,
+        id: schedule._id,
+        priceBook: {
+          ...schedule.priceBook,
+          id: priceBookId,
+        },
+        fund: {
+          ...schedule.fund,
+          id: fundId,
+        },
+      };
     });
     return sendResponse({
       res,
