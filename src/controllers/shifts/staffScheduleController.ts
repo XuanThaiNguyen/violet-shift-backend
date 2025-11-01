@@ -19,14 +19,18 @@ export const isAssignedToSchedule = async (req: Request) => {
     const scheduleId = req.params.scheduleId;
     const userId = (req as AuthRequestWithSchedule).userId;
 
-    const schedule = await StaffSchedule.findOne({ _id: scheduleId, user: userId, isDeleted: false }, undefined, { lean: true, virtuals: true });
+    const schedule = await StaffSchedule.findOne(
+      { _id: scheduleId, staff: userId, isDeleted: false },
+      undefined,
+      { lean: true, virtuals: true },
+    );
     if (!schedule) {
       return false;
     }
     (req as AuthRequestWithSchedule)["schedule"] = {
       id: schedule._id,
       ...schedule,
-    };
+    } as unknown as IStaffSchedule;
     return true;
   } catch (error) {
     return false;
@@ -44,7 +48,10 @@ export const getStaffSchedule = async (req: Request, res: Response) => {
 
   try {
     const scheduleId = req.params.scheduleId;
-    const schedule = await StaffSchedule.findOne({ _id: scheduleId, isDeleted: false }, undefined, { lean: true, virtuals: true });
+    const schedule = await StaffSchedule.findOne({ _id: scheduleId, isDeleted: false }, undefined, {
+      lean: true,
+      virtuals: true,
+    });
     if (!schedule) {
       return sendResponse({
         res,
@@ -126,7 +133,9 @@ export const getStaffSchedules = async (req: Request, res: Response) => {
 export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
-    const schedules = await StaffSchedule.find({ shift: shiftId, isDeleted: false }, undefined, { lean: true });
+    const schedules = await StaffSchedule.find({ shift: shiftId, isDeleted: false }, undefined, {
+      lean: true,
+    });
     return sendResponse({
       res,
       statusCode: 200,
@@ -237,14 +246,12 @@ export const clockOut = async (req: Request, res: Response) => {
       });
     }
 
-    const schedule = await StaffSchedule.findOne(
-      {
-        _id: scheduleId,
-        staff: userId,
-        shift: shiftId,
-        isDeleted: false,
-      },
-    );
+    const schedule = await StaffSchedule.findOne({
+      _id: scheduleId,
+      staff: userId,
+      shift: shiftId,
+      isDeleted: false,
+    });
     if (!schedule) {
       return sendResponse({
         res,

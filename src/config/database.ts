@@ -20,8 +20,8 @@ export const connectDB = async (): Promise<void> => {
     }
 
     await mongoose.connect(mongoURI, {
-      autoCreate: false,
-      autoIndex: false,
+      // autoCreate: false,
+      // autoIndex: false,
     });
     logger.info("MongoDB is running!");
   } catch (error) {
