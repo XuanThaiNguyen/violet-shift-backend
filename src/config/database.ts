@@ -19,7 +19,10 @@ export const connectDB = async (): Promise<void> => {
       throw error;
     }
 
-    await mongoose.connect(mongoURI);
+    await mongoose.connect(mongoURI, {
+      autoCreate: false,
+      autoIndex: false,
+    });
     logger.info("MongoDB is running!");
   } catch (error) {
     logger.error((error as Error).message, (error as Error).stack);

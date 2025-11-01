@@ -48,7 +48,7 @@ const MemberInvitationSchema: Schema<IMemberInvitation> = new Schema<IMemberInvi
 );
 
 export const MemberInvitation: Model<IMemberInvitation> = mongoose.model<IMemberInvitation>(
-  "MemberInvitation",
+  "Member_Invitation",
   MemberInvitationSchema,
 );
 

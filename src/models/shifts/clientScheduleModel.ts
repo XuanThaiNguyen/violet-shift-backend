@@ -71,7 +71,7 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
 );
 
 export const ClientSchedule: Model<IClientSchedule> = mongoose.model<IClientSchedule>(
-  "ClientSchedule",
+  "Client_Schedule",
   ClientScheduleSchema,
 );
 
