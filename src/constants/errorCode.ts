@@ -3,6 +3,8 @@ export const LOGIN_ERROR_CODE = {
   USER_NOT_FOUND: 1001, // user not found
   INVALID_CURRENT_PASSWORD: 1002, // invalid current password
   EMAIL_CAN_BE_SENT: 1003, // email can be sent
+  USER_IS_ARCHIVED: 1004, // user is archived
+  USER_NOT_ACTIVE: 1005, // user not active
   TOO_MANY_REQUESTS: 1008, // too many requests
   INTERNAL_SERVER_ERROR: 1009,
 };

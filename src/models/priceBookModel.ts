@@ -83,6 +83,6 @@ const PriceBookSchema: Schema<IPriceBook> = new Schema<IPriceBook>(
 );
 
 export const PriceBook: Model<IPriceBook> = mongoose.model<IPriceBook>(
-  "PriceBook",
+  "Price_Book",
   PriceBookSchema,
 );

@@ -54,7 +54,7 @@ export const ShiftTaskSchema: Schema<IShiftTask> = new Schema<IShiftTask>({
 });
 
 export const ShiftTask: Model<IShiftTask> = mongoose.model<IShiftTask>(
-  "ShiftTask",
+  "Shift_Task",
   ShiftTaskSchema,
 );
 

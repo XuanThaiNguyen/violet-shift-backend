@@ -97,13 +97,32 @@ export const newPassword = async (req: Request, res: Response) => {
     }
 
     const user = await User.findById((req as AuthRequest).userId, { password: 0 });
-    if (!user)
+    if (!user) {
       return sendResponse({
         res,
         statusCode: 404,
         message: "User not found",
         code: ME_ERROR_CODE.USER_NOT_FOUND,
       });
+    }
+
+    if (user.isArchived) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: LOGIN_ERROR_CODE.USER_IS_ARCHIVED,
+      });
+    }
+
+    if (!user.joinedAt) {
+      return sendResponse({
+        res,
+        statusCode: 403,
+        message: "User is not active",
+        code: LOGIN_ERROR_CODE.USER_NOT_ACTIVE,
+      });
+    }
 
     user.password = await bcrypt.hash(passwordData.password, 10);
     await user.save();
@@ -183,7 +202,7 @@ export const updatePassword = async (req: Request, res: Response) => {
       statusCode: 200,
       status: API_STATUS.OK,
       message: "Password updated successfully",
-      data: 'OK',
+      data: "OK",
     });
   } catch (error) {
     return sendResponse({
@@ -231,6 +250,24 @@ export const forgotPassword = async (req: Request, res: Response) => {
         statusCode: 404,
         message: "User not found",
         code: LOGIN_ERROR_CODE.USER_NOT_FOUND,
+      });
+    }
+
+    if (user.isArchived) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "User not found",
+        code: LOGIN_ERROR_CODE.USER_IS_ARCHIVED,
+      });
+    }
+
+    if (!user.joinedAt) {
+      return sendResponse({
+        res,
+        statusCode: 403,
+        message: "User is not active",
+        code: LOGIN_ERROR_CODE.USER_NOT_ACTIVE,
       });
     }
 

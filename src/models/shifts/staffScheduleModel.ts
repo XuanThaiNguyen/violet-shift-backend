@@ -90,7 +90,7 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
 StaffScheduleSchema.index({ shift: 1, staff: 1 }, { unique: true });
 
 export const StaffSchedule: Model<IStaffSchedule> = mongoose.model<IStaffSchedule>(
-  "StaffSchedule",
+  "Staff_Schedule",
   StaffScheduleSchema,
 );
 
