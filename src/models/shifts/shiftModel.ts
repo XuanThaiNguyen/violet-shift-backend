@@ -146,7 +146,7 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
     }, // drop off unit/department/door number
     repeat: {
       type: Types.ObjectId,
-      ref: "ShiftRepeat",
+      ref: "Shift_Repeat",
       index: true,
     },
 
