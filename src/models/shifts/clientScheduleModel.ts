@@ -34,7 +34,7 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
     priceBook: {
       required: true,
       type: Schema.Types.ObjectId,
-      ref: "PriceBook",
+      ref: "Price_Book",
       index: true,
     },
     fund: {
