@@ -14,6 +14,7 @@ export type ShiftProgress = {
   url?: string[];
   client: string;
   shiftProgressType: ShiftProgressTypesEnum;
+  metadata: Record<string, string>;
 };
 
 export type ShiftTask = {
@@ -198,6 +199,13 @@ const repeatSchema = Joi.object<Repeat>({
 });
 
 export const validateShiftProgress = (data: ShiftProgress) => {
+  const expenseSchema = Joi.object({
+    expense: Joi.string().required(),
+  });
+  const mileageSchema = Joi.object({
+    mileage: Joi.string().required(),
+  });
+
   const schema = Joi.object<ShiftProgress>({
     description: Joi.string().required(),
     url: Joi.array().items(Joi.string()).optional(),
@@ -205,6 +213,13 @@ export const validateShiftProgress = (data: ShiftProgress) => {
     shiftProgressType: Joi.string()
       .valid(...ShiftProgressTypes)
       .required(),
+    metadata: Joi.when("shiftProgressType", {
+      switch: [
+        { is: "expense", then: expenseSchema.required() },
+        { is: "mileage", then: mileageSchema.required() },
+      ],
+      otherwise: Joi.forbidden(),
+    }),
   });
 
   return schema.validate(data, { stripUnknown: true });

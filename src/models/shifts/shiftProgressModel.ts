@@ -19,6 +19,7 @@ export interface IShiftProgress extends Document {
   url?: string[];
   client: Types.ObjectId | IClient;
   shift: Types.ObjectId | IShift;
+  metadata?: Record<string, string>;
 }
 
 const ShiftProgressSchema: Schema<IShiftProgress> = new Schema<IShiftProgress>(
@@ -52,6 +53,10 @@ const ShiftProgressSchema: Schema<IShiftProgress> = new Schema<IShiftProgress>(
         trim: true,
       },
     ],
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
   },
   {
     timestamps: true,
