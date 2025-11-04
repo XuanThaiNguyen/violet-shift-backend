@@ -1,8 +1,20 @@
-import Joi from "joi";
-import { Allowances, ShiftTypes, ShiftTypesEnum } from "../models/shifts/shiftModel";
-import { AllowancesEnum } from "../models/shifts/shiftModel";
 import { validateCronExpression } from "cron";
+import Joi from "joi";
+import {
+  Allowances,
+  AllowancesEnum,
+  ShiftTypes,
+  ShiftTypesEnum,
+} from "../models/shifts/shiftModel";
+import { ShiftProgressTypes, ShiftProgressTypesEnum } from "../models/shifts/shiftProgressModel";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
+
+export type ShiftProgress = {
+  description: string;
+  url?: string[];
+  client: string;
+  shiftProgressType: ShiftProgressTypesEnum;
+};
 
 export type ShiftTask = {
   repetitiveId?: string; // for shift repeat bulk update / deletion
@@ -184,6 +196,19 @@ const repeatSchema = Joi.object<Repeat>({
   endDate: Joi.number().required(),
   tz: Joi.string().required(),
 });
+
+export const validateShiftProgress = (data: ShiftProgress) => {
+  const schema = Joi.object<ShiftProgress>({
+    description: Joi.string().required(),
+    url: Joi.array().items(Joi.string()).optional(),
+    client: Joi.string().required(),
+    shiftProgressType: Joi.string()
+      .valid(...ShiftProgressTypes)
+      .required(),
+  });
+
+  return schema.validate(data, { stripUnknown: true });
+};
 
 export const validateAddShift = (data: IAddShift) => {
   const schema = Joi.object<IAddShift>({
