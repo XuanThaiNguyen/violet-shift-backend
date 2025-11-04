@@ -1,16 +1,31 @@
-import { number } from "joi";
 import mongoose, { Document, Model, Schema } from "mongoose";
+import WEEKDAYS, { Weekday } from "../../constants/weekdays";
 
-export interface ITimeRule extends Document {
+/**
+ * fromTime, toTime by minutes
+ * {
+ *   12AM: 0,
+ *   1AM: 60,
+ *   2AM: 120,
+ *   3AM: 180,
+ *   4AM: 240,
+ *   5AM: 300,
+ *   6AM: 360,
+ * }
+ */
+
+export interface ITimeRuleObj {
+  _id?: string;
   name: string;
-  fromTime: string;
-  toTime: string;
-  days: string[];
+  fromTime: number;
+  toTime: number;
+  weekdays: Weekday;
   rate: number;
   priority: number;
   effectiveDate: Date;
   isActive: boolean;
 }
+export type ITimeRule = ITimeRuleObj & Document;
 
 const TimeRuleSchema: Schema<ITimeRule> = new Schema<ITimeRule>(
   {
@@ -22,34 +37,20 @@ const TimeRuleSchema: Schema<ITimeRule> = new Schema<ITimeRule>(
     },
     fromTime: {
       required: true,
-      type: String,
-      validate: {
-        validator: (value) => {
-          return value.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/);
-        },
-        message: "Invalid time format",
-      },
-      trim: true,
+      type: Number,
+      min: 0,
+      max: 1439,
     },
     toTime: {
       required: true,
-      type: String,
-      validate: {
-        validator: (value) => {
-          return value.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/);
-        },
-        message: "Invalid time format",
-      },
+      type: Number,
+      min: 0,
+      max: 1439,
     },
-    days: {
+    weekdays: {
       required: true,
-      type: [Number],
-      validate: {
-        validator: (value) => {
-          return value.every((day: number) => day >= 0 && day <= 6);
-        },
-        message: "Invalid days format",
-      },
+      type: String,
+      enum: WEEKDAYS,
     },
     rate: {
       required: true,

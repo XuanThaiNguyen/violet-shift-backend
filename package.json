@@ -10,9 +10,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "start:consumer": "node dist/consumer.js",
+    "seed": "ts-node src/seeds/run-seed.ts",
     "seed:admin": "ts-node src/seeds/addSuperAdmin.ts",
     "seed:roles": "ts-node src/seeds/addRoles.ts",
     "seed:client": "ts-node src/seeds/addClient.ts",
+    "seed:time-rules": "ts-node src/seeds/addTimeRules.ts",
     "migrate:up": "migrate-mongo up",
     "migrate:down": "migrate-mongo down",
     "format": "prettier --write .",
@@ -60,6 +62,7 @@
     "winston-mongodb": "^7.0.1"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
     "@types/bcrypt": "^6.0.0",
     "@types/breejs__later": "^4.1.5",
     "@types/cors": "^2.8.19",
