@@ -13,6 +13,7 @@ import {
   addProgress,
   getProgress,
   getProgresses,
+  getProgressEvents,
   updateProgress,
 } from "../controllers/shifts/shiftProgressController";
 import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
@@ -972,6 +973,12 @@ router.put(
   "/:shiftId/progresses/:progressId",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateProgress,
+);
+
+router.get(
+  "/:shiftId/progress-events",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  getProgressEvents,
 );
 
 export default router;

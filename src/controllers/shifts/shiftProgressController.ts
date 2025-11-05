@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
+import { AuthRequest } from "../../middleware/type";
 import Shift from "../../models/shifts/shiftModel";
+import ShiftProgressEvent from "../../models/shifts/shiftProgressEventModel";
 import ShiftProgress from "../../models/shifts/shiftProgressModel";
 import { sendResponse } from "../../utils/sendResponse";
 import { validateShiftProgress } from "../../validations/shiftValidation";
@@ -8,6 +10,8 @@ import { validateShiftProgress } from "../../validations/shiftValidation";
 export const addProgress = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
+    const userId = (req as AuthRequest).userId;
+
     const { error, value: progressData } = validateShiftProgress(req.body);
     if (error) {
       return sendResponse({
@@ -46,6 +50,15 @@ export const addProgress = async (req: Request, res: Response) => {
     const progress = await ShiftProgress.create({
       ...progressData,
       shift: shiftId,
+    });
+
+    ShiftProgressEvent.create({
+      progress: progress._id,
+      shift: shiftId,
+      shiftProgressType: progress.shiftProgressType,
+      client: progress.client,
+      action: "created",
+      createdBy: userId,
     });
 
     return sendResponse({
@@ -126,6 +139,8 @@ export const updateProgress = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
     const progressId = req.params.progressId;
+    const userId = (req as AuthRequest).userId;
+
     const { error, value: progressData } = validateShiftProgress(req.body);
     if (error) {
       return sendResponse({
@@ -133,6 +148,16 @@ export const updateProgress = async (req: Request, res: Response) => {
         statusCode: 400,
         message: error.details[0].message,
         code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const currentProgress = await ShiftProgress.findById(progressId);
+    if (!currentProgress) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Progress not found",
+        code: SHIFT_ERROR_CODE.SHIFT_PROGRESS_NOT_FOUND,
       });
     }
 
@@ -151,17 +176,68 @@ export const updateProgress = async (req: Request, res: Response) => {
       });
     }
 
+    const changes: Record<string, any> = {};
+    Object.keys(progressData).forEach((key) => {
+      const oldValue = currentProgress[key as keyof typeof currentProgress];
+      const newValue = progressData[key as keyof typeof progressData];
+
+      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+        changes[key] = {
+          old: oldValue,
+          new: newValue,
+        };
+      }
+    });
+
     const updatedProgress = await ShiftProgress.findByIdAndUpdate(
       progressId,
       { $set: { ...progressData, updatedAt: new Date() } },
       { new: true },
     ).populate("client", "firstName lastName preferredName middleName salutation");
 
+    if (Object.keys(changes).length > 0) {
+      ShiftProgressEvent.create({
+        progress: progressId,
+        shift: shiftId,
+        shiftProgressType: currentProgress.shiftProgressType,
+        client: currentProgress.client,
+        action: "updated",
+        changes,
+        createdBy: userId,
+      });
+    }
+
     return sendResponse({
       res,
       statusCode: 200,
       message: "Progress updated successfully",
       data: updatedProgress,
+    });
+  } catch (err) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const getProgressEvents = async (req: Request, res: Response) => {
+  try {
+    const shiftId = req.params.shiftId;
+
+    const events = await ShiftProgressEvent.find({ shift: shiftId })
+      .sort({ createdAt: -1 })
+      .populate("createdBy", "firstName lastName preferredName middleName salutation")
+      .populate("client", "firstName lastName preferredName middleName salutation")
+      .lean();
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Progress events fetched successfully",
+      data: events,
     });
   } catch (err) {
     return sendResponse({
