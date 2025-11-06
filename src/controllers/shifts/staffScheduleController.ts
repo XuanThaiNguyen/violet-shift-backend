@@ -6,7 +6,7 @@ import { AuthRequest } from "../../middleware/type";
 import Shift from "../../models/shifts/shiftModel";
 import StaffSchedule, { IStaffSchedule } from "../../models/shifts/staffScheduleModel";
 import { sendResponse } from "../../utils/sendResponse";
-import { validateAddSignature, validateClockOut } from "../../validations/shiftClockValidation";
+import { validateAddSignature } from "../../validations/shiftClockValidation";
 import {
   IQueryStaffSchedules,
   validateQueryStaffSchedules,
@@ -233,19 +233,6 @@ export const clockOut = async (req: Request, res: Response) => {
       });
     }
 
-    const { error, value: clockOutData } = validateClockOut(req.body, {
-      staffSignatureRequired: shift.staffClockOutRequired,
-      clientSignatureRequired: shift.clientClockOutRequired,
-    });
-    if (error) {
-      return sendResponse({
-        res,
-        statusCode: 400,
-        message: error.details[0].message,
-        code: SHIFT_ERROR_CODE.INVALID_REQUEST,
-      });
-    }
-
     const schedule = await StaffSchedule.findOne({
       _id: scheduleId,
       staff: userId,
@@ -286,6 +273,24 @@ export const clockOut = async (req: Request, res: Response) => {
     //   });
     // }
 
+    if (shift.staffClockOutRequired && !schedule.signature?.url) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Staff signature is required before clock out",
+        code: SHIFT_ERROR_CODE.STAFF_SIGNATURE_REQUIRED,
+      });
+    }
+
+    if (shift.clientClockOutRequired && !schedule.clientSignature?.url) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Client signature is required before clock out",
+        code: SHIFT_ERROR_CODE.CLIENT_SIGNATURE_REQUIRED,
+      });
+    }
+
     schedule.clocksOutAt = Date.now();
     await schedule.save();
 
@@ -320,7 +325,7 @@ export const addSignature = async (req: Request, res: Response) => {
     const scheduleId = req.params.scheduleId;
     const shiftId = req.params.shiftId;
 
-    const { role, signatureUrl, note } = signatureData;
+    const { role, url, note } = signatureData;
     const userId = (req as AuthRequestWithSchedule).userId;
     const schedule = await StaffSchedule.findOne({
       _id: scheduleId,
@@ -346,8 +351,11 @@ export const addSignature = async (req: Request, res: Response) => {
           code: SHIFT_ERROR_CODE.STAFF_ALREADY_HAS_SIGNATURE,
         });
       }
-      schedule.signature = signatureUrl;
-      schedule.signatureNote = note;
+      schedule.signature = {
+        url,
+        note,
+        createdAt: new Date(),
+      };
     } else {
       if (schedule.clientSignature) {
         return sendResponse({
@@ -357,8 +365,11 @@ export const addSignature = async (req: Request, res: Response) => {
           code: SHIFT_ERROR_CODE.CLIENT_ALREADY_HAS_SIGNATURE,
         });
       }
-      schedule.clientSignature = signatureUrl;
-      schedule.clientSignatureNote = note;
+      schedule.clientSignature = {
+        url,
+        note,
+        createdAt: new Date(),
+      };
     }
 
     await schedule.save();
@@ -369,5 +380,12 @@ export const addSignature = async (req: Request, res: Response) => {
       message: "Signature added successfully",
       data: schedule!.toObject({ virtuals: true }),
     });
-  } catch (err) {}
+  } catch (err) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
 };

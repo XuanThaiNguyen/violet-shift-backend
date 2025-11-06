@@ -14,15 +14,42 @@ export interface IStaffSchedule extends Document {
   clientNames: string[];
   clocksInAt: number; // unix timestamp
   clocksOutAt: number; // unix timestamp
-  signature?: string;
-  clientSignature?: string;
-  signatureNote?: string;
-  clientSignatureNote?: string;
-  // payGroup: string;
+
+  signature: {
+    url: string;
+    note?: string;
+    createdAt: Date;
+  };
+  clientSignature: {
+    url: string;
+    note?: string;
+    createdAt: Date;
+  };
 
   // soft delete
   isDeleted: boolean;
 }
+
+const SignatureSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    note: {
+      type: String,
+      trim: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: false,
+  },
+);
 
 const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
   {
@@ -69,22 +96,8 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       type: Number, // unix timestamp
       trim: true,
     },
-    signature: {
-      type: String, // base64 string or URL
-      trim: true,
-    },
-    signatureNote: {
-      type: String,
-      trim: true,
-    },
-    clientSignature: {
-      type: String, // base64 string or URL
-      trim: true,
-    },
-    clientSignatureNote: {
-      type: String,
-      trim: true,
-    },
+    signature: SignatureSchema,
+    clientSignature: SignatureSchema,
 
     // soft delete
     isDeleted: {
