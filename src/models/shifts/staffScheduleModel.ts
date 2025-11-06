@@ -15,7 +15,9 @@ export interface IStaffSchedule extends Document {
   clocksInAt: number; // unix timestamp
   clocksOutAt: number; // unix timestamp
   signature?: string;
-  clientSignatures?: string[];
+  clientSignature?: string;
+  signatureNote?: string;
+  clientSignatureNote?: string;
   // payGroup: string;
 
   // soft delete
@@ -68,11 +70,19 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       trim: true,
     },
     signature: {
+      type: String, // base64 string or URL
+      trim: true,
+    },
+    signatureNote: {
       type: String,
       trim: true,
     },
-    clientSignatures: {
-      type: [String],
+    clientSignature: {
+      type: String, // base64 string or URL
+      trim: true,
+    },
+    clientSignatureNote: {
+      type: String,
       trim: true,
     },
 

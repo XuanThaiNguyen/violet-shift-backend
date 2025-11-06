@@ -1,17 +1,17 @@
+import { addMonths } from "date-fns";
 import type { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/type";
-import { sendResponse } from "../../utils/sendResponse";
 import { Types } from "mongoose";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
+import { AuthRequest } from "../../middleware/type";
+import Shift from "../../models/shifts/shiftModel";
 import StaffSchedule, { IStaffSchedule } from "../../models/shifts/staffScheduleModel";
+import { sendResponse } from "../../utils/sendResponse";
+import { validateAddSignature, validateClockOut } from "../../validations/shiftClockValidation";
 import {
   IQueryStaffSchedules,
   validateQueryStaffSchedules,
 } from "../../validations/staffScheduleValidation";
-import Shift from "../../models/shifts/shiftModel";
-import { addMonths } from "date-fns";
 import { AuthRequestWithSchedule } from "./type";
-import { validateClockOut } from "../../validations/shiftClockValidation";
 
 // middleware to check if the user is assigned to the shift
 export const isAssignedToSchedule = async (req: Request) => {
@@ -303,4 +303,71 @@ export const clockOut = async (req: Request, res: Response) => {
       code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
     });
   }
+};
+
+export const addSignature = async (req: Request, res: Response) => {
+  try {
+    const { error, value: signatureData } = validateAddSignature(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const scheduleId = req.params.scheduleId;
+    const shiftId = req.params.shiftId;
+
+    const { role, signatureUrl, note } = signatureData;
+    const userId = (req as AuthRequestWithSchedule).userId;
+    const schedule = await StaffSchedule.findOne({
+      _id: scheduleId,
+      shift: shiftId,
+      staff: userId,
+      isDeleted: false,
+    });
+    if (!schedule) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Staff schedule not found",
+        code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
+      });
+    }
+
+    if (role === "staff") {
+      if (schedule.signature) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Staff already has a signature",
+          code: SHIFT_ERROR_CODE.STAFF_ALREADY_HAS_SIGNATURE,
+        });
+      }
+      schedule.signature = signatureUrl;
+      schedule.signatureNote = note;
+    } else {
+      if (schedule.clientSignature) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Client already has a signature",
+          code: SHIFT_ERROR_CODE.CLIENT_ALREADY_HAS_SIGNATURE,
+        });
+      }
+      schedule.clientSignature = signatureUrl;
+      schedule.clientSignatureNote = note;
+    }
+
+    await schedule.save();
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Signature added successfully",
+      data: schedule!.toObject({ virtuals: true }),
+    });
+  } catch (err) {}
 };
