@@ -1,7 +1,7 @@
 import { Schema, model, Types } from "mongoose";
 
 export interface IFunding extends Document {
-  userId: Types.ObjectId;
+  client: Types.ObjectId;
   name: string;
   startDate: string;
   expireDate: string;
@@ -12,7 +12,7 @@ export interface IFunding extends Document {
 
 const FundingSchema = new Schema(
   {
-    userId: { type: Types.ObjectId, ref: "User", required: true },
+    client: { type: Types.ObjectId, ref: "Client", required: true },
     name: { type: String, required: true, trim: true },
     startDate: { type: Date },
     expireDate: { type: Date },
