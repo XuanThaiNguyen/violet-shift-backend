@@ -7,10 +7,14 @@ module.exports = {
   async up(db, client) {
     // TODO write your migration here.
     // Change field userId to clientId in funding collection
-    await db.collection('fundings').updateMany({}, { $rename: { userId: 'client' } });
+    await db.collection("fundings").updateMany({}, { $rename: { userId: "client" } });
     // See https://github.com/seppevs/migrate-mongo/#creating-a-new-migration-script
     // Example:
     // await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: true}});
+
+    // Collection: Staff Schedules
+    // Change clientSignatures: [string] -> clientSignature: { url, note, createdAt }
+    // Change signature: string -> signature: { url, note, createdAt }
   },
 
   /**
@@ -22,5 +26,5 @@ module.exports = {
     // TODO write the statements to rollback your migration (if possible)
     // Example:
     // await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});
-  }
+  },
 };

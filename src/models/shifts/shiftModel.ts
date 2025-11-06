@@ -64,7 +64,6 @@ export interface IShift extends Document {
 
   // soft delete
   isDeleted: boolean;
-
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -184,7 +183,6 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       type: Boolean,
       default: false,
     },
-
   },
   {
     timestamps: true,
