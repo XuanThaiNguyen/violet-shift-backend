@@ -67,7 +67,7 @@ export interface IAddShift {
   bonus: number; // bonus
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
-  repeat: Repeat;
+  repeat?: Repeat;
 
   // mileage information
   mileageCap: number; // miles
