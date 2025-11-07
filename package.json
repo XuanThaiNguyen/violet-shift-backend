@@ -36,6 +36,8 @@
   "homepage": "https://github.com/XuanThaiNguyen/violet-shift-backend#readme",
   "dependencies": {
     "@breejs/later": "^4.2.0",
+    "@date-fns/tz": "^1.4.1",
+    "@internationalized/date": "^3.10.0",
     "@types/node": "^24.6.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
