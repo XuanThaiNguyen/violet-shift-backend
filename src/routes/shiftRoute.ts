@@ -10,6 +10,7 @@ import {
 } from "../controllers/shifts/shiftController";
 import { ROLE_IDS } from "../constants/roles";
 import {
+  addSignature,
   clockIn,
   clockOut,
   getSchedulesByShiftId as getStaffSchedules,
@@ -362,7 +363,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                     type: array
  *                     items:
  *                       type: string
- *                       example: 1234567890  
+ *                       example: 1234567890
  *                       description: repetitiveId
  *                   update:
  *                     type: array
@@ -384,7 +385,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                         fund:
  *                           type: string
  *                           example: 1234567890
- * 
+ *
  *               staffSchedules:
  *                 type: object
  *                 properties:
@@ -409,7 +410,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                     type: array
  *                     items:
  *                       type: string
- *                       example: 1234567890  
+ *                       example: 1234567890
  *                       description: staff id
  *                   update:
  *                     type: array
@@ -428,7 +429,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                         paymentMethod:
  *                           type: string
  *                           example: default
- * 
+ *
  *               tasks:
  *                 type: object
  *                 properties:
@@ -453,7 +454,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                     type: array
  *                     items:
  *                       type: string
- *                       example: 1234567890  
+ *                       example: 1234567890
  *                       description: repetitiveId
  *                   update:
  *                     type: array
@@ -474,12 +475,12 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                           example: true
  *                         isCompleted:
  *                           type: boolean
- *                           example: false 
- * 
+ *                           example: false
+ *
  *               instruction:
  *                 type: string
  *                 example: This is a shift instruction
- * 
+ *
  *               shiftType:
  *                 type: string
  *                 example: personal_care
@@ -513,7 +514,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *               acceptedDeclinable:
  *                 type: boolean
  *                 example: false
- * 
+ *
  *               timeFrom:
  *                 type: number
  *                 example: 10
@@ -534,7 +535,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *                 example: 10
  *               dropOffAddress:
  *                 type: string
- *                 example: 123 Main St 
+ *                 example: 123 Main St
  *               dropOffUnitNumber:
  *                 type: string
  *                 example: 123
@@ -547,7 +548,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *               isCompanyVehicle:
  *                 type: boolean
  *                 example: false
- * 
+ *
  *               clientClockOutRequired:
  *                 type: boolean
  *                 example: false
@@ -563,12 +564,7 @@ router.post("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), addShift);
  *               type: string
  *               example: 'ok'
  */
-router.put(
-  "/:shiftId",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
-  updateShift,
-);
-
+router.put("/:shiftId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), updateShift);
 
 /**
  * @swagger
@@ -645,7 +641,11 @@ router.delete("/:shiftId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), de
  *                   example: 'OK'
  *
  */
-router.post("/bulk-delete/:repeatId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), bulkDeleteShift);
+router.post(
+  "/bulk-delete/:repeatId",
+  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  bulkDeleteShift,
+);
 
 /**
  * @swagger
@@ -701,7 +701,7 @@ router.post("/bulk-delete/:repeatId", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDI
  */
 router.get(
   "/:shiftId/staff-schedules",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getStaffSchedules,
 );
 
@@ -774,11 +774,9 @@ router.post("/:shiftId/staff-schedules/:scheduleId/clock-in", clockIn);
  *               signature:
  *                 type: string
  *                 example: 1234567890
- *               clientSignatures:
- *                 type: array
- *                 items:
- *                   type: string
- *                   example: https://example.com/signature.png
+ *               clientSignature:
+ *                 type: string
+ *                 example: 1234567890
  *     responses:
  *       200:
  *         description: Staff clock out
@@ -944,4 +942,11 @@ router.put(
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateTaskStatus,
 );
+
+router.put(
+  "/:shiftId/staff-schedules/:scheduleId/signature",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  addSignature,
+);
+
 export default router;
