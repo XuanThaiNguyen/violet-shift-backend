@@ -10,11 +10,12 @@ export const TIME_RULES_IDS = {
   HOLIDAY: "690a15a7f2b1c94123d7e07c",
 } as const;
 
+// Remember: Change time rules may affect the worklog calculation in test cases
 export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.ORDINARY]: {
     name: "Ordinary",
     fromTime: 360,
-    toTime: 1199,
+    toTime: 1200,
     weekdays: WeekdaysEnum.WEEKDAYS,
     rate: 1,
     priority: 1,
@@ -24,7 +25,7 @@ export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.NIGHTLY]: {
     name: "Nightly",
     fromTime: 1200,
-    toTime: 1439,
+    toTime: 1440,
     weekdays: WeekdaysEnum.WEEKDAYS,
     rate: 1.25,
     priority: 2,
@@ -34,7 +35,7 @@ export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.OVERNIGHT]: {
     name: "Overnight",
     fromTime: 0,
-    toTime: 359,
+    toTime: 360,
     weekdays: WeekdaysEnum.WEEKDAYS,
     rate: 1.5,
     priority: 2.5,
@@ -44,7 +45,7 @@ export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.SATURDAY]: {
     name: "Saturday",
     fromTime: 0,
-    toTime: 1439,
+    toTime: 1440,
     weekdays: WeekdaysEnum.SATURDAY,
     rate: 2,
     priority: 3,
@@ -54,7 +55,7 @@ export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.SUNDAY]: {
     name: "Sunday",
     fromTime: 0,
-    toTime: 1439,
+    toTime: 1440,
     weekdays: WeekdaysEnum.SUNDAY,
     rate: 2,
     priority: 3,
@@ -64,7 +65,7 @@ export const TIME_RULES_DATA: Record<string, ITimeRuleObj> = {
   [TIME_RULES_IDS.HOLIDAY]: {
     name: "Holiday",
     fromTime: 0,
-    toTime: 1439,
+    toTime: 1440,
     weekdays: WeekdaysEnum.HOLIDAYS,
     rate: 3,
     priority: 4,

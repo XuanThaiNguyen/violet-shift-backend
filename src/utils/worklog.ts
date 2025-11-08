@@ -1,4 +1,4 @@
-import { startOfDay, differenceInDays, endOfDay, isValid, isSameDay, format, addDays } from "date-fns";
+import { startOfDay, endOfDay, isValid, isSameDay, format, addDays, differenceInCalendarDays } from "date-fns";
 import { TZDate } from "@date-fns/tz";
 import { Weekday, WeekdaysEnum } from "../constants/weekdays";
 
@@ -17,7 +17,7 @@ export interface BaseTimeRule {
   weekdays: Weekday;
 }
 
-export const toMinuteOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes();
+export const toMinuteOfDay = (date: Date) => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
 export const minutesToTime = (minutes: number): [number, number] => {
   return [Math.floor(minutes / 60), minutes % 60];
 };
@@ -63,7 +63,7 @@ export function breakWorkLogIntoSegments(
     return acc;
   }, {} as Record<string, boolean>);
 
-  const diffDays = differenceInDays(endTime, startTime);
+  const diffDays = differenceInCalendarDays(endTime, startTime);
 
   if (diffDays === 0) {
     const isInHoliday = holidayMap[format(startTime, "yyyy-MM-dd")];
@@ -103,11 +103,20 @@ export function breakWorkLogWithinSameDay(
   baseTimeRules: BaseTimeRule[],
   isHoliday: boolean = false,
 ): TimeSegment[] {
+
+  if (endTime.getTime() < startTime.getTime()) {
+    throw new Error("End time is less than start time");
+  }
+
+  if (endTime.getTime() === startTime.getTime()) {
+    return [];
+  }
+
   if (!isSameDay(startTime, endTime)) {
     throw new Error("Start time and end time must be the same day");
   }
-  const startMinute = toMinuteOfDay(startTime);
-  const endMinute = toMinuteOfDay(endTime);
+  const startMinute = Math.round(toMinuteOfDay(startTime));
+  const endMinute = Math.round(toMinuteOfDay(endTime));
   const weekday = isHoliday ? WeekdaysEnum.HOLIDAYS : toWeekday(startTime);
   const timezone = startTime.timeZone;
   const ruleGroups = baseTimeRules.reduce((acc, rule) => {
@@ -118,8 +127,9 @@ export function breakWorkLogWithinSameDay(
   }, {} as Record<Weekday, BaseTimeRule[]>);
 
   const segments: TimeSegment[] = [];
+  const ruleGroup = ruleGroups[weekday] ?? [];
 
-  for (const rule of ruleGroups[weekday]) {
+  for (const rule of ruleGroup) {
 
     const from = Math.max(startMinute, rule.fromTime);
     const to = Math.min(endMinute, rule.toTime);
@@ -129,7 +139,7 @@ export function breakWorkLogWithinSameDay(
       const [toHour, toMinute] = minutesToTime(to);
 
       const fromUnix = new TZDate(startTime.getFullYear(), startTime.getMonth(), startTime.getDate(), fromHour, fromMinute, timezone).getTime();
-      const toUnix = new TZDate(startTime.getFullYear(), startTime.getMonth(), startTime.getDate(), toHour, toMinute, timezone).getTime();
+      const toUnix = to === 1440 ? startOfDay(addDays(startTime, 1)).getTime() : new TZDate(startTime.getFullYear(), startTime.getMonth(), startTime.getDate(), toHour, toMinute, timezone).getTime();
       const duration = toUnix - fromUnix;
       segments.push({
         ruleId: rule.id,
