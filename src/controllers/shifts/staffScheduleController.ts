@@ -12,6 +12,7 @@ import {
   validateQueryStaffSchedules,
 } from "../../validations/staffScheduleValidation";
 import { AuthRequestWithSchedule } from "./type";
+import worklogService from "../../services/worklog/worklog";
 
 // middleware to check if the user is assigned to the shift
 export const isAssignedToSchedule = async (req: Request) => {
@@ -293,6 +294,14 @@ export const clockOut = async (req: Request, res: Response) => {
 
     schedule.clocksOutAt = Date.now();
     await schedule.save();
+
+    // TODO: fire event to calculate payroll. Must setup kafka
+    await worklogService.logWork({
+      staff: userId,
+      startTime: schedule.timeFrom,
+      endTime: schedule.timeTo,  // should be clocksOutAt but this is the requirement.
+      timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
+    });
 
     return sendResponse({
       res,
