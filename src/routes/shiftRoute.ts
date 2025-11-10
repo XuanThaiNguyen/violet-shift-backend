@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
+import { ROLE_IDS } from "../constants/roles";
+import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
 import {
   addShift,
   bulkDeleteShift,
@@ -8,15 +9,21 @@ import {
   isAssignedToShift,
   updateShift,
 } from "../controllers/shifts/shiftController";
-import { ROLE_IDS } from "../constants/roles";
+import {
+  addProgress,
+  getProgress,
+  getProgresses,
+  getProgressEvents,
+  updateProgress,
+} from "../controllers/shifts/shiftProgressController";
+import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
 import {
   addSignature,
   clockIn,
   clockOut,
   getSchedulesByShiftId as getStaffSchedules,
 } from "../controllers/shifts/staffScheduleController";
-import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shifts/clientScheduleController";
-import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
+import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 router.use(requireAuth);
@@ -947,6 +954,36 @@ router.put(
   "/:shiftId/staff-schedules/:scheduleId/signature",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   addSignature,
+);
+
+router.post(
+  "/:shiftId/progresses",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  addProgress,
+);
+
+router.get(
+  "/:shiftId/progresses",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  getProgresses,
+);
+
+router.get(
+  "/:shiftId/progresses/:progressId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  getProgress,
+);
+
+router.put(
+  "/:shiftId/progresses/:progressId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  updateProgress,
+);
+
+router.get(
+  "/:shiftId/progress-events",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  getProgressEvents,
 );
 
 export default router;
