@@ -84,10 +84,7 @@ const gracefulShutdown = async (signal: string) => {
         resolve();
       });
     });
-    await Promise.all([
-      disconnectDB(),
-      RedisService.disconnect(),
-    ]);
+    await Promise.all([disconnectDB(), RedisService.disconnect()]);
 
     logger.info("Shutdown complete. Bye!\n");
     process.exit(0);
