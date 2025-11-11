@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import mongoose, { AnyBulkWriteOperation } from "mongoose";
+import mongoose, { AnyBulkWriteOperation, MongooseBulkWriteResult } from "mongoose";
 import { sendResponse } from "../../utils/sendResponse";
 import { logger as winstonLogger } from "../../utils/logger";
 import {
@@ -469,9 +469,11 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
           throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
         }
 
+        const earliestShift = shifts[0];
+
         const staffSchedule = await StaffSchedule.findOne(
           {
-            repeat: repeatId,
+            shift: earliestShift._id,
             isDeleted: false,
             timeFrom: { $lt: Date.now() },
           },
@@ -567,28 +569,37 @@ export const updateShift = async (req: Request, res: Response) => {
     });
   }
   try {
+    // sanity check if the shift happened or not or not found
+    const [shift, happenedSchedule] = await Promise.all([
+      Shift.findOne({ _id: shiftId, isDeleted: false }, undefined),
+      StaffSchedule.findOne(
+        { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
+        undefined,
+        {
+          lean: true,
+        },
+      ),
+    ]);
+    if (!shift) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Shift not found",
+        code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+      });
+    }
+
+    if (shift.timeFrom < Date.now() || happenedSchedule) {
+      return sendResponse({
+        res,
+        statusCode: 405,
+        message: "Shift has happened",
+        code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
+      });
+    }
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-        // sanity check if the shift happened or not or not found
-        const [shift, happenedSchedule] = await Promise.all([
-          Shift.findOne({ _id: shiftId, isDeleted: false }, undefined),
-          StaffSchedule.findOne(
-            { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
-            undefined,
-            {
-              lean: true,
-            },
-          ),
-        ]);
-        if (!shift) {
-          throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
-        }
-
-        if (shift.timeFrom < Date.now() || happenedSchedule) {
-          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
-        }
-
         const { clientSchedules, staffSchedules, tasks, ...shiftMetadata } = updateData;
 
         const clientScheduleOps: AnyBulkWriteOperation<any>[] = [];
@@ -690,45 +701,27 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        clientSchedules?.delete?.forEach((repetitiveId) => {
+        if (clientSchedules?.delete?.length > 0) {  
           clientScheduleOps.push({
-            updateOne: {
-              filter: { repetitiveId: repetitiveId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
+            deleteMany: {
+              filter: { repetitiveId: { $in: clientSchedules.delete }, shift: shiftId },
             },
           });
-        });
-        staffSchedules?.delete?.map((staffId) => {
+        }
+        if (staffSchedules?.delete?.length > 0) {
           staffScheduleOps.push({
-            updateOne: {
-              filter: { staff: staffId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
+            deleteMany: {
+              filter: { staff: { $in: staffSchedules.delete }, shift: shiftId },
             },
           });
-        });
-        tasks?.delete?.forEach((repetitiveId) => {
+        }
+        if (tasks?.delete?.length > 0) {
           taskOps.push({
-            updateOne: {
-              filter: { repetitiveId: repetitiveId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
+            deleteMany: {
+              filter: { repetitiveId: { $in: tasks.delete }, shift: shiftId },
             },
           });
-        });
+        }
 
         const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
           await Promise.all([
@@ -764,47 +757,24 @@ export const updateShift = async (req: Request, res: Response) => {
               { session, new: true },
             ),
 
-            ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
-            StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),
-            ShiftTask.bulkWrite(taskOps, { session, ordered: false }),
+            ...(clientScheduleOps?.length > 0
+              ? [ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false })]
+              : []),
+            ...(staffScheduleOps?.length > 0
+              ? [StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false })]
+              : []),
+            ...(taskOps?.length > 0
+              ? [ShiftTask.bulkWrite(taskOps, { session, ordered: false })]
+              : []),
           ]);
 
-        if (
-          clientOpsStatus.modifiedCount !== clientScheduleOps.length ||
-          staffScheduleOpsStatus.modifiedCount !== staffScheduleOps.length ||
-          taskOpsStatus.modifiedCount !== taskOps.length
-        ) {
-          const error = new Error(INTERNAL_ERROR.SHIFT_UPDATE_FAILED);
-          (error as any).cause = {
-            clientOpsStatus,
-            staffScheduleOpsStatus,
-            taskOpsStatus,
-          };
-          throw error;
-        }
+        // TODO add checksum later, also optimize the code later
       });
     } catch (error) {
       try {
         await session.abortTransaction();
         await session.endSession();
       } catch {}
-
-      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_NOT_FOUND) {
-        return sendResponse({
-          res,
-          statusCode: 404,
-          message: "Shift not found",
-          code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
-        });
-      }
-      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_HAPPENED) {
-        return sendResponse({
-          res,
-          statusCode: 400,
-          message: "Shift has happened",
-          code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
-        });
-      }
 
       if (error instanceof Error) {
         logger.error(error.message, error.stack);
