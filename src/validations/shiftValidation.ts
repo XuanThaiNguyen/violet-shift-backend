@@ -340,9 +340,9 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     delete: string[]; // repetitiveIds
     update: ShiftTask[];
   }>({
-    add: Joi.array().items(updateShiftTaskSchema).optional().default([]),
+    add: Joi.array().items(shiftTaskSchema).optional().default([]),
     delete: Joi.array().items(Joi.string()).optional().default([]),
-    update: Joi.array().items(shiftTaskSchema).optional().default([]),
+    update: Joi.array().items(updateShiftTaskSchema).optional().default([]),
   });
 
   const schema = Joi.object<IUpdateShift>({
