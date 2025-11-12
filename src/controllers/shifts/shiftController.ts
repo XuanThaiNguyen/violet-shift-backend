@@ -701,7 +701,7 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        if (clientSchedules?.delete?.length > 0) {  
+        if (clientSchedules?.delete?.length > 0) {
           clientScheduleOps.push({
             deleteMany: {
               filter: { repetitiveId: { $in: clientSchedules.delete }, shift: shiftId },
@@ -723,50 +723,82 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         }
 
-        const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
-          await Promise.all([
-            shift.updateOne(
-              {
-                _id: shiftId,
-                shiftType: shiftMetadata.shiftType,
-                additionalShiftTypes: shiftMetadata.additionalShiftTypes,
-                allowances: shiftMetadata.allowances,
-                mileageInvoicing: shiftMetadata.mileageInvoicing,
-                shiftMileage: shiftMetadata.shiftMileage,
-                additionalCost: shiftMetadata.additionalCost,
-                ignoreStaffCount: shiftMetadata.ignoreStaffCount,
-                confirmationRequired: shiftMetadata.confirmationRequired,
-                acceptedDeclinable: shiftMetadata.acceptedDeclinable,
-                timeFrom: shiftMetadata.timeFrom,
-                timeTo: shiftMetadata.timeTo,
-                breakTime: shiftMetadata.breakTime,
-                address: shiftMetadata.address,
-                unitNumber: shiftMetadata.unitNumber,
-                bonus: shiftMetadata.bonus,
-                dropOffAddress: shiftMetadata.dropOffAddress,
-                dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
+        // Update clientNames in StaffSchedule whenever clientSchedules change
+        if (clientSchedules?.add || clientSchedules?.update || clientSchedules?.delete) {
+          if (clientScheduleOps.length > 0) {
+            await ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false });
+          }
 
-                mileageCap: shiftMetadata.mileageCap,
-                mileage: shiftMetadata.mileage,
-                isCompanyVehicle: shiftMetadata.isCompanyVehicle,
-                clientClockOutRequired: shiftMetadata.clientClockOutRequired,
-                staffClockOutRequired: shiftMetadata.staffClockOutRequired,
+          const allClientSchedules = await ClientSchedule.find(
+            { shift: shiftId, isDeleted: false },
+            { client: 1 },
+            { session },
+          ).lean();
 
-                instruction: shiftMetadata.instruction,
-              },
-              { session, new: true },
-            ),
+          const clientIds = allClientSchedules.map((cs) => cs.client);
+          let clientNames: string[] = [];
 
-            ...(clientScheduleOps?.length > 0
-              ? [ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false })]
-              : []),
-            ...(staffScheduleOps?.length > 0
-              ? [StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false })]
-              : []),
-            ...(taskOps?.length > 0
-              ? [ShiftTask.bulkWrite(taskOps, { session, ordered: false })]
-              : []),
-          ]);
+          if (clientIds.length > 0) {
+            const clients = await Client.find(
+              { _id: { $in: clientIds } },
+              { firstName: 1, middleName: 1, lastName: 1, preferredName: 1 },
+            ).lean();
+
+            clientNames = clients.map(
+              (client) =>
+                client.preferredName ||
+                `${client.firstName}${client.middleName ? ` ${client.middleName}` : ""} ${client.lastName}`,
+            );
+          }
+
+          staffScheduleOps.push({
+            updateMany: {
+              filter: { shift: shiftId, isDeleted: false },
+              update: { $set: { clientNames } },
+            },
+          });
+        }
+
+        const [shiftUpdate, staffScheduleOpsStatus, taskOpsStatus] = await Promise.all([
+          shift.updateOne(
+            {
+              _id: shiftId,
+              shiftType: shiftMetadata.shiftType,
+              additionalShiftTypes: shiftMetadata.additionalShiftTypes,
+              allowances: shiftMetadata.allowances,
+              mileageInvoicing: shiftMetadata.mileageInvoicing,
+              shiftMileage: shiftMetadata.shiftMileage,
+              additionalCost: shiftMetadata.additionalCost,
+              ignoreStaffCount: shiftMetadata.ignoreStaffCount,
+              confirmationRequired: shiftMetadata.confirmationRequired,
+              acceptedDeclinable: shiftMetadata.acceptedDeclinable,
+              timeFrom: shiftMetadata.timeFrom,
+              timeTo: shiftMetadata.timeTo,
+              breakTime: shiftMetadata.breakTime,
+              address: shiftMetadata.address,
+              unitNumber: shiftMetadata.unitNumber,
+              bonus: shiftMetadata.bonus,
+              dropOffAddress: shiftMetadata.dropOffAddress,
+              dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
+
+              mileageCap: shiftMetadata.mileageCap,
+              mileage: shiftMetadata.mileage,
+              isCompanyVehicle: shiftMetadata.isCompanyVehicle,
+              clientClockOutRequired: shiftMetadata.clientClockOutRequired,
+              staffClockOutRequired: shiftMetadata.staffClockOutRequired,
+
+              instruction: shiftMetadata.instruction,
+            },
+            { session, new: true },
+          ),
+
+          ...(staffScheduleOps?.length > 0
+            ? [StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false })]
+            : []),
+          ...(taskOps?.length > 0
+            ? [ShiftTask.bulkWrite(taskOps, { session, ordered: false })]
+            : []),
+        ]);
 
         // TODO add checksum later, also optimize the code later
       });
