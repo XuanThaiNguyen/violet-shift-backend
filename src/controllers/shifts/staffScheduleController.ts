@@ -298,8 +298,9 @@ export const clockOut = async (req: Request, res: Response) => {
     // TODO: fire event to calculate payroll. Must setup kafka
     await worklogService.logWork({
       staff: userId,
+      shift: shift.id,
       startTime: schedule.timeFrom,
-      endTime: schedule.timeTo,  // should be clocksOutAt but this is the requirement.
+      endTime: schedule.timeTo, // should be clocksOutAt but this is the requirement.
       timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
     });
 
