@@ -46,7 +46,8 @@ export interface IShift extends Document {
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
   repeat: IShiftRepeat | Types.ObjectId;
-
+  timezone: string; // timezone
+  
   // instruction
   instruction: string; // rich text
 
@@ -64,7 +65,6 @@ export interface IShift extends Document {
 
   // soft delete
   isDeleted: boolean;
-
 }
 
 const ShiftSchema: Schema<IShift> = new Schema<IShift>(
@@ -149,6 +149,10 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       ref: "Shift_Repeat",
       index: true,
     },
+    timezone: {
+      type: String,
+      trim: true,
+    },
 
     instruction: {
       type: String,
@@ -184,7 +188,6 @@ const ShiftSchema: Schema<IShift> = new Schema<IShift>(
       type: Boolean,
       default: false,
     },
-
   },
   {
     timestamps: true,

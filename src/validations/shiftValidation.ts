@@ -1,8 +1,22 @@
-import Joi from "joi";
-import { Allowances, ShiftTypes, ShiftTypesEnum } from "../models/shifts/shiftModel";
-import { AllowancesEnum } from "../models/shifts/shiftModel";
 import { validateCronExpression } from "cron";
+import Joi from "joi";
+import {
+  Allowances,
+  AllowancesEnum,
+  ShiftTypes,
+  ShiftTypesEnum,
+} from "../models/shifts/shiftModel";
+import { ShiftProgressTypes, ShiftProgressTypesEnum } from "../models/shifts/shiftProgressModel";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
+import { isValidTimeZone } from "../utils/tz";
+
+export type ShiftProgress = {
+  description: string;
+  url?: string[];
+  client: string;
+  shiftProgressType: ShiftProgressTypesEnum;
+  metadata: Record<string, string>;
+};
 
 export type ShiftTask = {
   repetitiveId?: string; // for shift repeat bulk update / deletion
@@ -67,7 +81,8 @@ export interface IAddShift {
   bonus: number; // bonus
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
-  repeat: Repeat;
+  timezone: string; // timezone
+  repeat?: Repeat;
 
   // mileage information
   mileageCap: number; // miles
@@ -131,6 +146,7 @@ export interface IUpdateShift {
   bonus: number; // bonus
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
+  timezone: string; // timezone
 
   // mileage information
   mileageCap: number; // miles
@@ -185,6 +201,33 @@ const repeatSchema = Joi.object<Repeat>({
   tz: Joi.string().required(),
 });
 
+export const validateShiftProgress = (data: ShiftProgress) => {
+  const expenseSchema = Joi.object({
+    expense: Joi.string().required(),
+  });
+  const mileageSchema = Joi.object({
+    mileage: Joi.string().required(),
+  });
+
+  const schema = Joi.object<ShiftProgress>({
+    description: Joi.string().required(),
+    url: Joi.array().items(Joi.string()).optional(),
+    client: Joi.string().required(),
+    shiftProgressType: Joi.string()
+      .valid(...ShiftProgressTypes)
+      .required(),
+    metadata: Joi.when("shiftProgressType", {
+      switch: [
+        { is: "expense", then: expenseSchema.required() },
+        { is: "mileage", then: mileageSchema.required() },
+      ],
+      otherwise: Joi.forbidden(),
+    }),
+  });
+
+  return schema.validate(data, { stripUnknown: true });
+};
+
 export const validateAddShift = (data: IAddShift) => {
   const schema = Joi.object<IAddShift>({
     // client schedules
@@ -228,6 +271,12 @@ export const validateAddShift = (data: IAddShift) => {
     bonus: Joi.number().optional(),
     dropOffAddress: Joi.string().optional().allow(""),
     dropOffUnitNumber: Joi.string().optional().allow(""),
+    timezone: Joi.string().default(process.env.TZ || "Australia/Sydney").custom((value, helper) => {
+      if (!isValidTimeZone(value)) {
+        return helper.error("Invalid timezone");
+      }
+      return value;
+    }),
 
     // mileage information
     mileageCap: Joi.number().optional(),
@@ -291,9 +340,9 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     delete: string[]; // repetitiveIds
     update: ShiftTask[];
   }>({
-    add: Joi.array().items(updateShiftTaskSchema).optional().default([]),
+    add: Joi.array().items(shiftTaskSchema).optional().default([]),
     delete: Joi.array().items(Joi.string()).optional().default([]),
-    update: Joi.array().items(shiftTaskSchema).optional().default([]),
+    update: Joi.array().items(updateShiftTaskSchema).optional().default([]),
   });
 
   const schema = Joi.object<IUpdateShift>({
@@ -330,6 +379,12 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     bonus: Joi.number().optional(),
     dropOffAddress: Joi.string().optional().allow(""),
     dropOffUnitNumber: Joi.string().optional().allow(""),
+    timezone: Joi.string().optional().custom((value, helper) => {
+      if (value && !isValidTimeZone(value)) {
+        return helper.error("Invalid timezone");
+      }
+      return value;
+    }),
 
     // mileage information
     mileageCap: Joi.number().optional(),

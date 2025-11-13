@@ -1,17 +1,18 @@
+import { addMonths } from "date-fns";
 import type { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/type";
-import { sendResponse } from "../../utils/sendResponse";
 import { Types } from "mongoose";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
+import { AuthRequest } from "../../middleware/type";
+import Shift from "../../models/shifts/shiftModel";
 import StaffSchedule, { IStaffSchedule } from "../../models/shifts/staffScheduleModel";
+import { sendResponse } from "../../utils/sendResponse";
+import { validateAddSignature } from "../../validations/shiftClockValidation";
 import {
   IQueryStaffSchedules,
   validateQueryStaffSchedules,
 } from "../../validations/staffScheduleValidation";
-import Shift from "../../models/shifts/shiftModel";
-import { addMonths } from "date-fns";
 import { AuthRequestWithSchedule } from "./type";
-import { validateClockOut } from "../../validations/shiftClockValidation";
+import worklogService from "../../services/worklog/worklog";
 
 // middleware to check if the user is assigned to the shift
 export const isAssignedToSchedule = async (req: Request) => {
@@ -233,19 +234,6 @@ export const clockOut = async (req: Request, res: Response) => {
       });
     }
 
-    const { error, value: clockOutData } = validateClockOut(req.body, {
-      staffSignatureRequired: shift.staffClockOutRequired,
-      clientSignatureRequired: shift.clientClockOutRequired,
-    });
-    if (error) {
-      return sendResponse({
-        res,
-        statusCode: 400,
-        message: error.details[0].message,
-        code: SHIFT_ERROR_CODE.INVALID_REQUEST,
-      });
-    }
-
     const schedule = await StaffSchedule.findOne({
       _id: scheduleId,
       staff: userId,
@@ -286,8 +274,34 @@ export const clockOut = async (req: Request, res: Response) => {
     //   });
     // }
 
+    if (shift.staffClockOutRequired && !schedule.signature?.url) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Staff signature is required before clock out",
+        code: SHIFT_ERROR_CODE.STAFF_SIGNATURE_REQUIRED,
+      });
+    }
+
+    if (shift.clientClockOutRequired && !schedule.clientSignature?.url) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: "Client signature is required before clock out",
+        code: SHIFT_ERROR_CODE.CLIENT_SIGNATURE_REQUIRED,
+      });
+    }
+
     schedule.clocksOutAt = Date.now();
     await schedule.save();
+
+    // TODO: fire event to calculate payroll. Must setup kafka
+    await worklogService.logWork({
+      staff: userId,
+      startTime: schedule.timeFrom,
+      endTime: schedule.timeTo,  // should be clocksOutAt but this is the requirement.
+      timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
+    });
 
     return sendResponse({
       res,
@@ -296,6 +310,86 @@ export const clockOut = async (req: Request, res: Response) => {
       data: schedule!.toObject({ virtuals: true }),
     });
   } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const addSignature = async (req: Request, res: Response) => {
+  try {
+    const { error, value: signatureData } = validateAddSignature(req.body);
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+
+    const scheduleId = req.params.scheduleId;
+    const shiftId = req.params.shiftId;
+
+    const { role, url, note } = signatureData;
+    const userId = (req as AuthRequestWithSchedule).userId;
+    const schedule = await StaffSchedule.findOne({
+      _id: scheduleId,
+      shift: shiftId,
+      staff: userId,
+      isDeleted: false,
+    });
+    if (!schedule) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Staff schedule not found",
+        code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
+      });
+    }
+
+    if (role === "staff") {
+      if (schedule.signature) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Staff already has a signature",
+          code: SHIFT_ERROR_CODE.STAFF_ALREADY_HAS_SIGNATURE,
+        });
+      }
+      schedule.signature = {
+        url,
+        note,
+        createdAt: new Date(),
+      };
+    } else {
+      if (schedule.clientSignature) {
+        return sendResponse({
+          res,
+          statusCode: 400,
+          message: "Client already has a signature",
+          code: SHIFT_ERROR_CODE.CLIENT_ALREADY_HAS_SIGNATURE,
+        });
+      }
+      schedule.clientSignature = {
+        url,
+        note,
+        createdAt: new Date(),
+      };
+    }
+
+    await schedule.save();
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Signature added successfully",
+      data: schedule!.toObject({ virtuals: true }),
+    });
+  } catch (err) {
     return sendResponse({
       res,
       statusCode: 500,
