@@ -18,6 +18,7 @@ import {
 } from "../controllers/shifts/shiftProgressController";
 import { getTasksByShiftId, updateTaskStatus } from "../controllers/shifts/shiftTasksController";
 import {
+  addSignature,
   clockIn,
   clockOut,
   getSchedulesByShiftId as getStaffSchedules,
@@ -707,7 +708,7 @@ router.post(
  */
 router.get(
   "/:shiftId/staff-schedules",
-  isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getStaffSchedules,
 );
 
@@ -780,11 +781,9 @@ router.post("/:shiftId/staff-schedules/:scheduleId/clock-in", clockIn);
  *               signature:
  *                 type: string
  *                 example: 1234567890
- *               clientSignatures:
- *                 type: array
- *                 items:
- *                   type: string
- *                   example: https://example.com/signature.png
+ *               clientSignature:
+ *                 type: string
+ *                 example: 1234567890
  *     responses:
  *       200:
  *         description: Staff clock out
@@ -949,6 +948,12 @@ router.put(
   "/:shiftId/tasks/:taskId/complete",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateTaskStatus,
+);
+
+router.put(
+  "/:shiftId/staff-schedules/:scheduleId/signature",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  addSignature,
 );
 
 router.post(

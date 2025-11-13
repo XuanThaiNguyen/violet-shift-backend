@@ -3,7 +3,7 @@ import Joi from "joi";
 export type ClientStatus = "active" | "inactive" | "prospect";
 export type AgeStatus = "adult" | "children";
 
-interface IAddClient {
+export interface IAddClient {
   salutation: string;
   firstName: string;
   lastName: string;

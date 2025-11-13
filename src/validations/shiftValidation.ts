@@ -8,6 +8,7 @@ import {
 } from "../models/shifts/shiftModel";
 import { ShiftProgressTypes, ShiftProgressTypesEnum } from "../models/shifts/shiftProgressModel";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
+import { isValidTimeZone } from "../utils/tz";
 
 export type ShiftProgress = {
   description: string;
@@ -80,7 +81,8 @@ export interface IAddShift {
   bonus: number; // bonus
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
-  repeat: Repeat;
+  timezone: string; // timezone
+  repeat?: Repeat;
 
   // mileage information
   mileageCap: number; // miles
@@ -144,6 +146,7 @@ export interface IUpdateShift {
   bonus: number; // bonus
   dropOffAddress?: string; // drop off address
   dropOffUnitNumber?: string; // drop off unit/department/door number
+  timezone: string; // timezone
 
   // mileage information
   mileageCap: number; // miles
@@ -268,6 +271,12 @@ export const validateAddShift = (data: IAddShift) => {
     bonus: Joi.number().optional(),
     dropOffAddress: Joi.string().optional().allow(""),
     dropOffUnitNumber: Joi.string().optional().allow(""),
+    timezone: Joi.string().default(process.env.TZ || "Australia/Sydney").custom((value, helper) => {
+      if (!isValidTimeZone(value)) {
+        return helper.error("Invalid timezone");
+      }
+      return value;
+    }),
 
     // mileage information
     mileageCap: Joi.number().optional(),
@@ -331,9 +340,9 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     delete: string[]; // repetitiveIds
     update: ShiftTask[];
   }>({
-    add: Joi.array().items(updateShiftTaskSchema).optional().default([]),
+    add: Joi.array().items(shiftTaskSchema).optional().default([]),
     delete: Joi.array().items(Joi.string()).optional().default([]),
-    update: Joi.array().items(shiftTaskSchema).optional().default([]),
+    update: Joi.array().items(updateShiftTaskSchema).optional().default([]),
   });
 
   const schema = Joi.object<IUpdateShift>({
@@ -370,6 +379,12 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     bonus: Joi.number().optional(),
     dropOffAddress: Joi.string().optional().allow(""),
     dropOffUnitNumber: Joi.string().optional().allow(""),
+    timezone: Joi.string().optional().custom((value, helper) => {
+      if (value && !isValidTimeZone(value)) {
+        return helper.error("Invalid timezone");
+      }
+      return value;
+    }),
 
     // mileage information
     mileageCap: Joi.number().optional(),

@@ -75,6 +75,12 @@ export const FUNDING_ERROR_CODE = {
   INTERNAL_SERVER_ERROR: 7006,
 };
 
+export const WORKLOG_ERROR_CODE = {
+  INVALID_REQUEST: 8000,
+
+  INTERNAL_SERVER_ERROR: 8099,
+};
+
 export const AUTH_ERROR_CODE = {
   UNAUTHORIZED: 9999991, // unauthorized
   UNAUTHENTICATED: 9999992, // unauthenticated

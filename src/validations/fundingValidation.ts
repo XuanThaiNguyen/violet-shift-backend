@@ -2,7 +2,7 @@ import Joi from "joi";
 import { Types } from "mongoose";
 
 export interface IAddFunding {
-  userId: string;
+  client: string;
   name: string;
   startDate?: Date;
   expireDate?: Date;
@@ -11,7 +11,7 @@ export interface IAddFunding {
 }
 
 export interface IUpdateFunding {
-  userId: string;
+  client: string;
   name?: string;
   startDate?: Date;
   expireDate?: Date;
@@ -31,7 +31,7 @@ const objectId = () =>
 
 export const validateAddFunding = (data: IAddFunding) => {
   const schema = Joi.object<IAddFunding>({
-    userId: objectId().required(),
+    client: objectId().required(),
     name: Joi.string().trim().min(2).max(20).required(),
     startDate: Joi.date().optional(),
     expireDate: Joi.date().optional(),
@@ -43,7 +43,7 @@ export const validateAddFunding = (data: IAddFunding) => {
 
 export const validateUpdateFunding = (data: IUpdateFunding) => {
   const schema = Joi.object<IUpdateFunding>({
-    userId: objectId().required(),
+    client: objectId().required(),
     name: Joi.string().trim().min(2).max(20).optional(),
     startDate: Joi.date().optional(),
     expireDate: Joi.date().optional(),

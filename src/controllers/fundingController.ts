@@ -18,7 +18,7 @@ export const addFunding = async (req: Request, res: Response) => {
     }
 
     const existing = await Funding.findOne({
-      userId: fundingData.userId,
+      client: fundingData.client,
       name: { $regex: new RegExp(`^${fundingData.name}$`, "i") },
     });
 
@@ -32,7 +32,7 @@ export const addFunding = async (req: Request, res: Response) => {
     }
 
     if (fundingData.isDefault) {
-      await Funding.updateMany({ userId: fundingData.userId }, { $set: { isDefault: false } });
+      await Funding.updateMany({ client: fundingData.client }, { $set: { isDefault: false } });
     }
 
     const newFunding = await Funding.create(fundingData);
@@ -57,7 +57,7 @@ export const addFunding = async (req: Request, res: Response) => {
 export const getFundingsByUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const fundings = await Funding.find({ userId: id }).lean();
+    const fundings = await Funding.find({ client: id }).lean();
     const formatFundings = fundings.map((funding) => {
       return {
         id: funding._id.toString(),
@@ -132,7 +132,7 @@ export const updateFunding = async (req: Request, res: Response) => {
 
     if (fundingData.isDefault) {
       await Funding.updateMany(
-        { userId: fundingData.userId },
+        { client: fundingData.client },
         { $set: { isDefault: false } },
         { session },
       );

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import mongoose, { AnyBulkWriteOperation } from "mongoose";
+import mongoose, { AnyBulkWriteOperation, MongooseBulkWriteResult } from "mongoose";
 import { sendResponse } from "../../utils/sendResponse";
 import { logger as winstonLogger } from "../../utils/logger";
 import {
@@ -469,9 +469,11 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
           throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
         }
 
+        const earliestShift = shifts[0];
+
         const staffSchedule = await StaffSchedule.findOne(
           {
-            repeat: repeatId,
+            shift: earliestShift._id,
             isDeleted: false,
             timeFrom: { $lt: Date.now() },
           },
@@ -567,28 +569,37 @@ export const updateShift = async (req: Request, res: Response) => {
     });
   }
   try {
+    // sanity check if the shift happened or not or not found
+    const [shift, happenedSchedule] = await Promise.all([
+      Shift.findOne({ _id: shiftId, isDeleted: false }, undefined),
+      StaffSchedule.findOne(
+        { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
+        undefined,
+        {
+          lean: true,
+        },
+      ),
+    ]);
+    if (!shift) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Shift not found",
+        code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+      });
+    }
+
+    if (shift.timeFrom < Date.now() || happenedSchedule) {
+      return sendResponse({
+        res,
+        statusCode: 405,
+        message: "Shift has happened",
+        code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
+      });
+    }
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-        // sanity check if the shift happened or not or not found
-        const [shift, happenedSchedule] = await Promise.all([
-          Shift.findOne({ _id: shiftId, isDeleted: false }, undefined),
-          StaffSchedule.findOne(
-            { shift: shiftId, isDeleted: false, timeFrom: { $lte: Date.now() } },
-            undefined,
-            {
-              lean: true,
-            },
-          ),
-        ]);
-        if (!shift) {
-          throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
-        }
-
-        if (shift.timeFrom < Date.now() || happenedSchedule) {
-          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
-        }
-
         const { clientSchedules, staffSchedules, tasks, ...shiftMetadata } = updateData;
 
         const clientScheduleOps: AnyBulkWriteOperation<any>[] = [];
@@ -690,121 +701,112 @@ export const updateShift = async (req: Request, res: Response) => {
           });
         });
 
-        clientSchedules?.delete?.forEach((repetitiveId) => {
+        if (clientSchedules?.delete?.length > 0) {
           clientScheduleOps.push({
-            updateOne: {
-              filter: { repetitiveId: repetitiveId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
+            deleteMany: {
+              filter: { repetitiveId: { $in: clientSchedules.delete }, shift: shiftId },
             },
           });
-        });
-        staffSchedules?.delete?.map((staffId) => {
-          staffScheduleOps.push({
-            updateOne: {
-              filter: { staff: staffId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
-            },
-          });
-        });
-        tasks?.delete?.forEach((repetitiveId) => {
-          taskOps.push({
-            updateOne: {
-              filter: { repetitiveId: repetitiveId, shift: shiftId },
-              update: {
-                $set: {
-                  isDeleted: true,
-                },
-              },
-              timestamps: true,
-            },
-          });
-        });
-
-        const [shiftUpdate, clientOpsStatus, staffScheduleOpsStatus, taskOpsStatus] =
-          await Promise.all([
-            shift.updateOne(
-              {
-                _id: shiftId,
-                shiftType: shiftMetadata.shiftType,
-                additionalShiftTypes: shiftMetadata.additionalShiftTypes,
-                allowances: shiftMetadata.allowances,
-                mileageInvoicing: shiftMetadata.mileageInvoicing,
-                shiftMileage: shiftMetadata.shiftMileage,
-                additionalCost: shiftMetadata.additionalCost,
-                ignoreStaffCount: shiftMetadata.ignoreStaffCount,
-                confirmationRequired: shiftMetadata.confirmationRequired,
-                acceptedDeclinable: shiftMetadata.acceptedDeclinable,
-                timeFrom: shiftMetadata.timeFrom,
-                timeTo: shiftMetadata.timeTo,
-                breakTime: shiftMetadata.breakTime,
-                address: shiftMetadata.address,
-                unitNumber: shiftMetadata.unitNumber,
-                bonus: shiftMetadata.bonus,
-                dropOffAddress: shiftMetadata.dropOffAddress,
-                dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
-
-                mileageCap: shiftMetadata.mileageCap,
-                mileage: shiftMetadata.mileage,
-                isCompanyVehicle: shiftMetadata.isCompanyVehicle,
-                clientClockOutRequired: shiftMetadata.clientClockOutRequired,
-                staffClockOutRequired: shiftMetadata.staffClockOutRequired,
-
-                instruction: shiftMetadata.instruction,
-              },
-              { session, new: true },
-            ),
-
-            ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false }),
-            StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false }),
-            ShiftTask.bulkWrite(taskOps, { session, ordered: false }),
-          ]);
-
-        if (
-          clientOpsStatus.modifiedCount !== clientScheduleOps.length ||
-          staffScheduleOpsStatus.modifiedCount !== staffScheduleOps.length ||
-          taskOpsStatus.modifiedCount !== taskOps.length
-        ) {
-          const error = new Error(INTERNAL_ERROR.SHIFT_UPDATE_FAILED);
-          (error as any).cause = {
-            clientOpsStatus,
-            staffScheduleOpsStatus,
-            taskOpsStatus,
-          };
-          throw error;
         }
+        if (staffSchedules?.delete?.length > 0) {
+          staffScheduleOps.push({
+            deleteMany: {
+              filter: { staff: { $in: staffSchedules.delete }, shift: shiftId },
+            },
+          });
+        }
+        if (tasks?.delete?.length > 0) {
+          taskOps.push({
+            deleteMany: {
+              filter: { repetitiveId: { $in: tasks.delete }, shift: shiftId },
+            },
+          });
+        }
+
+        // Update clientNames in StaffSchedule whenever clientSchedules change
+        if (clientSchedules?.add || clientSchedules?.update || clientSchedules?.delete) {
+          if (clientScheduleOps.length > 0) {
+            await ClientSchedule.bulkWrite(clientScheduleOps, { session, ordered: false });
+          }
+
+          const allClientSchedules = await ClientSchedule.find(
+            { shift: shiftId, isDeleted: false },
+            { client: 1 },
+            { session },
+          ).lean();
+
+          const clientIds = allClientSchedules.map((cs) => cs.client);
+          let clientNames: string[] = [];
+
+          if (clientIds.length > 0) {
+            const clients = await Client.find(
+              { _id: { $in: clientIds } },
+              { firstName: 1, middleName: 1, lastName: 1, preferredName: 1 },
+            ).lean();
+
+            clientNames = clients.map(
+              (client) =>
+                client.preferredName ||
+                `${client.firstName}${client.middleName ? ` ${client.middleName}` : ""} ${client.lastName}`,
+            );
+          }
+
+          staffScheduleOps.push({
+            updateMany: {
+              filter: { shift: shiftId, isDeleted: false },
+              update: { $set: { clientNames } },
+            },
+          });
+        }
+
+        const [shiftUpdate, staffScheduleOpsStatus, taskOpsStatus] = await Promise.all([
+          shift.updateOne(
+            {
+              _id: shiftId,
+              shiftType: shiftMetadata.shiftType,
+              additionalShiftTypes: shiftMetadata.additionalShiftTypes,
+              allowances: shiftMetadata.allowances,
+              mileageInvoicing: shiftMetadata.mileageInvoicing,
+              shiftMileage: shiftMetadata.shiftMileage,
+              additionalCost: shiftMetadata.additionalCost,
+              ignoreStaffCount: shiftMetadata.ignoreStaffCount,
+              confirmationRequired: shiftMetadata.confirmationRequired,
+              acceptedDeclinable: shiftMetadata.acceptedDeclinable,
+              timeFrom: shiftMetadata.timeFrom,
+              timeTo: shiftMetadata.timeTo,
+              breakTime: shiftMetadata.breakTime,
+              address: shiftMetadata.address,
+              unitNumber: shiftMetadata.unitNumber,
+              bonus: shiftMetadata.bonus,
+              dropOffAddress: shiftMetadata.dropOffAddress,
+              dropOffUnitNumber: shiftMetadata.dropOffUnitNumber,
+
+              mileageCap: shiftMetadata.mileageCap,
+              mileage: shiftMetadata.mileage,
+              isCompanyVehicle: shiftMetadata.isCompanyVehicle,
+              clientClockOutRequired: shiftMetadata.clientClockOutRequired,
+              staffClockOutRequired: shiftMetadata.staffClockOutRequired,
+
+              instruction: shiftMetadata.instruction,
+            },
+            { session, new: true },
+          ),
+
+          ...(staffScheduleOps?.length > 0
+            ? [StaffSchedule.bulkWrite(staffScheduleOps, { session, ordered: false })]
+            : []),
+          ...(taskOps?.length > 0
+            ? [ShiftTask.bulkWrite(taskOps, { session, ordered: false })]
+            : []),
+        ]);
+
+        // TODO add checksum later, also optimize the code later
       });
     } catch (error) {
       try {
         await session.abortTransaction();
         await session.endSession();
       } catch {}
-
-      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_NOT_FOUND) {
-        return sendResponse({
-          res,
-          statusCode: 404,
-          message: "Shift not found",
-          code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
-        });
-      }
-      if ((error as Error)?.message === INTERNAL_ERROR.SHIFT_HAPPENED) {
-        return sendResponse({
-          res,
-          statusCode: 400,
-          message: "Shift has happened",
-          code: SHIFT_ERROR_CODE.SHIFT_HAPPENED,
-        });
-      }
 
       if (error instanceof Error) {
         logger.error(error.message, error.stack);

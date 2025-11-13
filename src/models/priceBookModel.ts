@@ -1,7 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
-
+import WEEKDAYS, { Weekday } from "../constants/weekdays";
 export interface IPriceBookRule extends Document {
-  dayOfWeek: string;
+  dayOfWeek: Weekday;
   timeFrom: number;
   timeTo: number;
   perHour: number;
@@ -25,16 +25,20 @@ export interface IPriceBookRule extends Document {
 const PriceBookRuleSchema: Schema<IPriceBookRule> = new Schema<IPriceBookRule>({
   dayOfWeek: {
     type: String,
-    enum: ["holidays", "weekdays", "saturday", "sunday"],
+    enum: WEEKDAYS,
     required: true,
   },
   timeFrom: {
     type: Number,
     required: true,
+    min: 0,
+    max: 1439,
   },
   timeTo: {
     type: Number,
     required: true,
+    min: 0,
+    max: 1439,
   },
   perHour: {
     type: Number,
