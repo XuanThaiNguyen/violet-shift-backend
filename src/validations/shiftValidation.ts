@@ -9,6 +9,7 @@ import {
 import { ShiftProgressTypes, ShiftProgressTypesEnum } from "../models/shifts/shiftProgressModel";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
 import { isValidTimeZone } from "../utils/tz";
+import { validateRRule } from "../utils/scheduler";
 
 export type ShiftProgress = {
   description: string;
@@ -190,10 +191,9 @@ const repeatSchema = Joi.object<Repeat>({
   pattern: Joi.string()
     .required()
     .custom((value, helper) => {
-      const { valid, error } = validateCronExpression(value);
+      const { valid, error } = validateRRule(value);
       if (!valid) {
-        console.error({ error });
-        return helper.error("Invalid cron expression");
+        return helper.error(error!);
       }
       return value;
     }),

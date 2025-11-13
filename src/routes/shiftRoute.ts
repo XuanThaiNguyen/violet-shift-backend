@@ -113,7 +113,8 @@ router.use(requireAuth);
  *                     properties:
  *                       pattern:
  *                         type: string
- *                         example: 0 0 1 * *
+ *                         example: FREQ=DAILY;INTERVAL=3;DTSTART=20251102T090000Z;UNTIL=20251231T090000Z
+ *                         description: RRule string, see https://github.com/jakubroztocil/rrule for more details
  *                       endDate:
  *                         type: number
  *                         example: 10

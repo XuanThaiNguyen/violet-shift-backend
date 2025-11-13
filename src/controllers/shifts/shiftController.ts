@@ -13,7 +13,7 @@ import {
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
 import { CronExpressionParser } from "cron-parser";
-import Shift, { IShift } from "../../models/shifts/shiftModel";
+import Shift from "../../models/shifts/shiftModel";
 import ShiftRepeat from "../../models/shifts/shiftRepeatModel";
 import ClientSchedule from "../../models/shifts/clientScheduleModel";
 import StaffSchedule from "../../models/shifts/staffScheduleModel";
@@ -21,6 +21,7 @@ import ShiftTask from "../../models/shifts/shiftTaskModel";
 import Client from "../../models/clientModel";
 import { AuthRequest } from "../../middleware/type";
 import { nanoid } from "nanoid";
+import { rrulestr } from "rrule";
 
 const controllerLogger = winstonLogger.child({
   controller: "shiftController",
@@ -116,11 +117,12 @@ export const addShift = async (req: Request, res: Response) => {
 
           rawShiftMetadata.repeat = repeatDoc._id;
 
-          const interval = CronExpressionParser.parse(repeat.pattern, {
-            currentDate: new Date(shiftMetadata.timeFrom),
-            endDate: new Date(repeat.endDate),
-            tz: repeat.tz,
-          });
+          const rrule = rrulestr(repeat.pattern);
+          rrule.options.tzid = repeat.tz;
+          rrule.options.dtstart = new Date(shiftMetadata.timeFrom);
+          rrule.options.until = new Date(repeat.endDate);
+
+          const occurrencesDates = rrule.all();
           // time and location period
           const fromToOffset = shiftMetadata.timeTo - shiftMetadata.timeFrom;
 
@@ -143,9 +145,12 @@ export const addShift = async (req: Request, res: Response) => {
             };
           });
 
-          while (true) {
+          for (const occurrence of occurrencesDates) {
             try {
-              const nextTime = interval.next().toDate().getTime();
+              const nextTime = occurrence.getTime();
+              if (nextTime === shiftMetadata.timeFrom) {
+                continue;
+              }
               const newShift: IRawAddShift = {
                 ...rawShiftMetadata,
                 timeFrom: nextTime,
