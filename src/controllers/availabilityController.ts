@@ -5,6 +5,29 @@ import { Funding } from "../models/fundingModel";
 import { sendResponse } from "../utils/sendResponse";
 import { validateCreateAvailability } from "../validations/availabilityValidation";
 import { rrulestr } from "rrule";
+import { IAvailability } from "../models/availability";
+import { I } from "@faker-js/faker/dist/airline-DF6RqYmq";
+import { TZDate } from "@date-fns/tz";
+import { minutesToTime, toMinuteOfDay } from "../utils/worklog";
+import { startOfDay } from "date-fns";
+
+
+export const _mergeOverlappedOccurrences = (occurrences: IAvailability[], newOccurrence: IAvailability) => {
+  const sortedOccurrences = occurrences.sort((a, b) => a.from - b.from);
+  let isOverlapped = false;
+  sortedOccurrences.forEach(occurrence => {
+    if (
+      
+    ) {
+      occurrence.from = Math.min(occurrence.from, newOccurrence.from);
+      occurrence.to = Math.max(occurrence.to, newOccurrence.to);
+    }
+
+
+  });
+
+  return occurrences;
+};
 
 export const addAvailabilities = async (req: Request, res: Response) => {
   try {
@@ -18,34 +41,73 @@ export const addAvailabilities = async (req: Request, res: Response) => {
       });
     }
 
-    const rrules = availabilityData.timeSegments.map((timeSegment) => {
-      const rrule = rrulestr(availabilityData);
-      rrule.options.tzid = availabilityData.tz;
-      const toHour = Math.floor(timeSegment.to / 60);
-      const toMinute = timeSegment.to % 60;
-      const fromHour = Math.floor(timeSegment.from / 60);
-      const fromMinute = timeSegment.from % 60;
-      const start
-      rrule.options.dtstart = new Date(availabilityData.tz, fromHour, fromMinute);
-      rrule.options.until = new Date(availabilityData.tz, toHour, toMinute);
-      return rrule;
-    });
+    const date = new TZDate(new Date(availabilityData.date), availabilityData.tz);
+    const dateMap: Record<string, IAvailability[]> = {};
+    availabilityData.timeSegments.forEach(
+      (curr) => {
+        const [hourFrom, minuteFrom] = minutesToTime(curr.from);
+        const [hourTo, minuteTo] = minutesToTime(curr.to);
+        const fromDate = new TZDate(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          hourFrom,
+          minuteFrom,
+          availabilityData.tz,
+        );
+        const from = fromDate.getTime();
+        const toDate = new TZDate(
+          date.getFullYear(),
+          date.getMonth(),
+          date.getDate(),
+          hourTo,
+          minuteTo,
+          availabilityData.tz,
+        );
+        const to = toDate.getTime();
+        const occurrenceDuration = to - from;
+        if (occurrenceDuration <= 0) {
+          return ;
+        }
+        
 
-    if (existing) {
-      return sendResponse({
-        res,
-        statusCode: 400,
-        code: FUNDING_ERROR_CODE.FUNDING_IS_EXISTING,
-        message: "Funding name already exists for this user.",
-      });
-    }
-
-    if (fundingData.isDefault) {
-      await Funding.updateMany({ client: fundingData.client }, { $set: { isDefault: false } });
-    }
-
-    const newFunding = await Funding.create(fundingData);
-    const { _id, ...rest } = newFunding.toObject();
+        const firstOccurrence: IAvailability = {
+          type: availabilityData.type,
+          from: from,
+          to: to,
+          isApproved: true,
+          isDeleted: false,
+          note: availabilityData.note,
+        };
+        const _date = startOfDay(fromDate).getTime();
+        const _dateMap = dateMap[_date] || [];
+      
+        
+        if (availabilityData.repeat) {
+          const rrule = rrulestr(availabilityData.repeat.pattern);
+          rrule.options.tzid = availabilityData.tz;
+          rrule.options.dtstart = new Date(from);
+          rrule.options.until = new Date(availabilityData.repeat.endsAt);
+          rrule.options.byhour = [hourFrom];
+          rrule.options.byminute = [minuteFrom];
+          const occurrencesDates = rrule.all();
+          for (const occurrence of occurrencesDates) {
+            const nextFrom = occurrence.getTime();
+            if (nextFrom === from) {
+              continue;
+            }
+            const nextTo = nextFrom + occurrenceDuration;
+            _occurrences.push({
+              ...firstOccurrence,
+              from: nextFrom,
+              to: nextTo,
+            });
+          }
+        }
+      },
+      [],
+    );
+    
 
     return sendResponse({
       res,

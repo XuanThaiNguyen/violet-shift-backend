@@ -3,7 +3,7 @@ import mongoose, { Document, Model, Schema } from "mongoose";
 export const availabilityTypes = ["available", "unavailable"] as const;
 export type AvailabilityType = (typeof availabilityTypes)[number];
 
-export interface IAvailability extends Document {
+export interface IAvailability {
   type: AvailabilityType;
   from: number;
   to: number;
@@ -12,7 +12,9 @@ export interface IAvailability extends Document {
   isDeleted?: boolean;
 }
 
-const AvailabilitySchema: Schema<IAvailability> = new Schema<IAvailability>(
+export type IAvailabilityDocument = IAvailability & Document;
+
+const AvailabilitySchema: Schema<IAvailabilityDocument> = new Schema<IAvailabilityDocument>(
   {
     type: {
       type: String,
@@ -47,7 +49,7 @@ const AvailabilitySchema: Schema<IAvailability> = new Schema<IAvailability>(
   },
 );
 
-export const Availability: Model<IAvailability> = mongoose.model<IAvailability>(
+export const Availability: Model<IAvailabilityDocument> = mongoose.model<IAvailabilityDocument>(
   "Availability",
   AvailabilitySchema,
 );
