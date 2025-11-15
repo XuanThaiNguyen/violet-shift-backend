@@ -1,7 +1,7 @@
 import Joi from "joi";
 import { AvailabilityType, availabilityTypes } from "../models/availability";
 
-interface createAvailability {
+interface CreateAvailability {
   repeat?: {
     pattern: string;
     endsAt: number;
@@ -16,8 +16,15 @@ interface createAvailability {
   type: AvailabilityType;
 }
 
-export const validateCreateAvailability = (data: createAvailability) => {
-  const schema = Joi.object<createAvailability>({
+export interface GetAvailabilities {
+  staff: string;
+  type: AvailabilityType;
+  from: number;
+  to: number;
+}
+
+export const validateCreateAvailability = (data: CreateAvailability) => {
+  const schema = Joi.object<CreateAvailability>({
     repeat: Joi.object({
       pattern: Joi.string().required().label("Pattern"),
       endsAt: Joi.number().required().label("Ends At").min(Joi.ref("date")),
@@ -38,6 +45,20 @@ export const validateCreateAvailability = (data: createAvailability) => {
       .valid(...availabilityTypes)
       .required()
       .label("Type"),
+  });
+  return schema.validate(data, { stripUnknown: true });
+};
+
+
+export const validateGetAvailabilities = (data: GetAvailabilities) => {
+  const schema = Joi.object<GetAvailabilities>({
+    staff: Joi.string().required().label("User ID"),
+    type: Joi.string()
+      .valid(...availabilityTypes)
+      .required()
+      .label("Type"),
+    from: Joi.number().required().label("From"),
+    to: Joi.number().required().label("To"),
   });
   return schema.validate(data, { stripUnknown: true });
 };

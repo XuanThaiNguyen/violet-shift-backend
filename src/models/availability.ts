@@ -1,9 +1,14 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
-export const availabilityTypes = ["available", "unavailable"] as const;
+export enum AvailabilityTypeEnum {
+  AVAILABLE = "available",
+  UNAVAILABLE = "unavailable",
+}
+export const availabilityTypes = Object.values(AvailabilityTypeEnum);
 export type AvailabilityType = (typeof availabilityTypes)[number];
 
 export interface IAvailability {
+  staff: mongoose.Types.ObjectId;
   type: AvailabilityType;
   from: number;
   to: number;
@@ -16,12 +21,18 @@ export type IAvailabilityDocument = IAvailability & Document;
 
 const AvailabilitySchema: Schema<IAvailabilityDocument> = new Schema<IAvailabilityDocument>(
   {
+    staff: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     type: {
       type: String,
       enum: availabilityTypes,
       required: true,
       index: true,
-      default: "available",
+      default: AvailabilityTypeEnum.AVAILABLE,
     },
     from: {
       type: Number,

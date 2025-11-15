@@ -125,6 +125,7 @@ async function run(): Promise<void> {
         isCompanyVehicle: faker.datatype.boolean(),
         clientClockOutRequired: false,
         staffClockOutRequired: false,
+        timezone: "Australia/Sydney",
       };
     });
 
