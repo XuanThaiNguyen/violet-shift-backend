@@ -147,7 +147,7 @@ export const addAvailabilities = async (req: Request, res: Response) => {
     return sendResponse({
       res,
       statusCode: 200,
-      message: "Funding created successfully",
+      message: "Availabilities created successfully",
       data: "Ok",
     });
   } catch (error) {
