@@ -12,7 +12,6 @@ import {
   validateUpdateShift,
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
-import { CronExpressionParser } from "cron-parser";
 import Shift from "../../models/shifts/shiftModel";
 import ShiftRepeat from "../../models/shifts/shiftRepeatModel";
 import ClientSchedule from "../../models/shifts/clientScheduleModel";
@@ -848,3 +847,18 @@ export const updateShift = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const bulkUpdateShift = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "bulkUpdateShift",
+  });
+  const { error, value: bulkUpdateData } = validateBulkUpdateShift(req.body);
+  if (error) {
+    return sendResponse({
+      res,
+      statusCode: 400,
+      message: error.details[0].message,
+      code: SHIFT_ERROR_CODE.INVALID_REQUEST,
+    });
+  }
+}
