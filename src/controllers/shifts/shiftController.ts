@@ -12,7 +12,7 @@ import {
   validateUpdateShift,
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
-import { CronExpressionParser } from "cron-parser";
+import { DateTime } from "luxon";
 import Shift from "../../models/shifts/shiftModel";
 import ShiftRepeat from "../../models/shifts/shiftRepeatModel";
 import ClientSchedule from "../../models/shifts/clientScheduleModel";
@@ -118,9 +118,21 @@ export const addShift = async (req: Request, res: Response) => {
           rawShiftMetadata.repeat = repeatDoc._id;
 
           const rrule = rrulestr(repeat.pattern);
+
+          const timeFromDate = new Date(shiftMetadata.timeFrom);
+          const endDateDate = new Date(repeat.endDate);
+          const hourFrom = timeFromDate.getUTCHours();
+          const minuteFrom = timeFromDate.getUTCMinutes();
+          rrule.origOptions.tzid = repeat.tz;
+          rrule.origOptions.dtstart = timeFromDate;
+          rrule.origOptions.until = endDateDate;
+          rrule.origOptions.byhour = [hourFrom];
+          rrule.origOptions.byminute = [minuteFrom];
           rrule.options.tzid = repeat.tz;
-          rrule.options.dtstart = new Date(shiftMetadata.timeFrom);
-          rrule.options.until = new Date(repeat.endDate);
+          rrule.options.dtstart = timeFromDate;
+          rrule.options.until = endDateDate;
+          rrule.options.byhour = [hourFrom];
+          rrule.options.byminute = [minuteFrom];
 
           const occurrencesDates = rrule.all();
           // time and location period
@@ -145,7 +157,17 @@ export const addShift = async (req: Request, res: Response) => {
             };
           });
 
-          for (const occurrence of occurrencesDates) {
+          for (const _occurrence of occurrencesDates) {
+            const occurrence = new Date(
+              _occurrence.getUTCFullYear(),
+              _occurrence.getUTCMonth(),
+              _occurrence.getUTCDate(),
+              timeFromDate.getHours(),
+              timeFromDate.getMinutes(),
+              timeFromDate.getSeconds(),
+              timeFromDate.getMilliseconds(),
+            );
+
             try {
               const nextTime = occurrence.getTime();
               if (nextTime === shiftMetadata.timeFrom) {
