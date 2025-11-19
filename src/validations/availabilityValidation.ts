@@ -18,16 +18,17 @@ interface CreateAvailability {
 
 export interface GetAvailabilities {
   staff: string;
-  type: AvailabilityType;
+  type?: AvailabilityType;
   from: number;
   to: number;
+  isApproved?: boolean;
 }
 
 export const validateCreateAvailability = (data: CreateAvailability) => {
   const schema = Joi.object<CreateAvailability>({
     repeat: Joi.object({
       pattern: Joi.string().required().label("Pattern"),
-      endsAt: Joi.number().required().label("Ends At").min(Joi.ref("date")),
+      endsAt: Joi.number().required().label("Ends At"),
     }).optional(),
     tz: Joi.string().required().label("TZ"),
     timeSegments: Joi.array()
@@ -54,11 +55,11 @@ export const validateGetAvailabilities = (data: GetAvailabilities) => {
   const schema = Joi.object<GetAvailabilities>({
     staff: Joi.string().required().label("User ID"),
     type: Joi.string()
-      .valid(...availabilityTypes)
-      .required()
+      .valid(...availabilityTypes, '')
       .label("Type"),
     from: Joi.number().required().label("From"),
-    to: Joi.number().required().label("To"),
+    to: Joi.number().required().label("To").min(Joi.ref("from")),
+    isApproved: Joi.boolean().optional().label("Is Approved"),
   });
   return schema.validate(data, { stripUnknown: true });
 };

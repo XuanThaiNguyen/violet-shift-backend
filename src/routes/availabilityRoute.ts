@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { addAvailabilities, declineLeaveRequest, getAvailabilities } from "../controllers/availabilityController";
-import { isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
+import { addAvailabilities, declineLeaveRequest, deleteAvailability, getAvailabilities, isOwnerOfAvailability } from "../controllers/availabilityController";
+import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import { ROLE_IDS } from "../constants/roles";
 import { AuthRequest } from "../middleware/type";
 
@@ -25,8 +25,13 @@ router.use(requireAuth);
  *       - name: type
  *         in: query
  *         description: Type
- *         required: true
+ *         required: false
  *         type: string
+ *       - name: isApproved
+ *         in: query
+ *         description: Is approved
+ *         required: false
+ *         type: boolean
  *       - name: from
  *         in: query
  *         description: From
@@ -83,10 +88,11 @@ router.get(
   "/",
   isInRolesOrSelf(
     [ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR],
-    (req) => req.query.staffId === (req as AuthRequest).userId,
+    (req) => req.query.staff === (req as AuthRequest).userId,
   ),
   getAvailabilities,
 );
+
 /**
  * @swagger
  * /availabilities:
@@ -97,7 +103,6 @@ router.get(
  *     security:
  *       - bearerAuth: []
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -105,16 +110,23 @@ router.get(
  *             properties:
  *               staff:
  *                 type: string
+ *                 description: Staff ID
+ *                 required: true
  *                 example: 1234567890
  *               type:
  *                 type: string
+ *                 description: Type
  *                 example: available
- *               from:
+ *               date:
  *                 type: number
+ *                 description: Date
+ *                 required: true
  *                 example: 1234567890
- *               to:
- *                 type: number
- *                 example: 1234567890
+ *               tz:
+ *                 type: string
+ *                 description: Timezone
+ *                 required: true
+ *                 example: Asia/Shanghai
  *               note:
  *                 type: string
  *                 example: Note
@@ -125,10 +137,10 @@ router.get(
  *                   properties:
  *                     from:
  *                       type: number
- *                       example: 1234567890
+ *                       example: 0
  *                     to:
  *                       type: number
- *                       example: 1234567890
+ *                       example: 1440
  *               repeat:
  *                 type: object
  *                 properties:
@@ -181,6 +193,32 @@ router.post("/", addAvailabilities);
  *               type: string
  *               example: 'ok'
  */
-router.post("/:id/decline", declineLeaveRequest);
+router.post("/:id/decline", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), declineLeaveRequest);
+
+/**
+ * @swagger
+ * /availabilities/{id}/:
+ *   delete:
+ *     tags:
+ *       - Availabilities
+ *     summary: Delete availability   
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: Availability ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Delete availability
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: string
+ *               example: 'ok'
+ */
+router.delete("/:id", isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isOwnerOfAvailability), deleteAvailability);
 
 export default router;

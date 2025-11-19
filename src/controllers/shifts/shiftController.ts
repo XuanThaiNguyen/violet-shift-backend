@@ -12,7 +12,6 @@ import {
   validateUpdateShift,
 } from "../../validations/shiftValidation";
 import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
-import { DateTime } from "luxon";
 import Shift from "../../models/shifts/shiftModel";
 import ShiftRepeat from "../../models/shifts/shiftRepeatModel";
 import ClientSchedule from "../../models/shifts/clientScheduleModel";
@@ -126,8 +125,8 @@ export const addShift = async (req: Request, res: Response) => {
           rrule.origOptions.tzid = repeat.tz;
           rrule.origOptions.dtstart = timeFromDate;
           rrule.origOptions.until = endDateDate;
-          rrule.origOptions.byhour = [hourFrom];
-          rrule.origOptions.byminute = [minuteFrom];
+          rrule.origOptions.byhour = hourFrom;
+          rrule.origOptions.byminute = minuteFrom;
           rrule.options.tzid = repeat.tz;
           rrule.options.dtstart = timeFromDate;
           rrule.options.until = endDateDate;
