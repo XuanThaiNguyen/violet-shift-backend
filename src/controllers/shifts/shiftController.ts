@@ -1155,6 +1155,13 @@ export const bulkUpdateShifts = async (req: Request, res: Response) => {
     } finally {
       session.endSession();
     }
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Shift updated successfully",
+      data: "ok",
+    });
   } catch (error) {
     if (error instanceof Error) {
       logger.error(error.message, error.stack);
