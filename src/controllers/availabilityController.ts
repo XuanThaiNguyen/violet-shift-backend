@@ -131,19 +131,22 @@ export const addAvailabilities = async (req: Request, res: Response) => {
         rrule.origOptions.until = endDateDate;
         rrule.origOptions.byhour = hourFrom;
         rrule.origOptions.byminute = minuteFrom;
+        rrule.origOptions.bysecond = 0;
 
         rrule.options.tzid = availabilityData.tz;
         rrule.options.dtstart = new Date(from);
         rrule.options.until = endDateDate;
         rrule.options.byhour = [hourFrom];
         rrule.options.byminute = [minuteFrom];
+        rrule.options.bysecond = [0];
 
         const occurrencesDates = rrule.all();
         for (const _occurrence of occurrencesDates) {
+          const zonedOccurrence = new TZDate(_occurrence, availabilityData.tz);
           const occurrence = new Date(
-            _occurrence.getUTCFullYear(),
-            _occurrence.getUTCMonth(),
-            _occurrence.getUTCDate(),
+            zonedOccurrence.getFullYear(),
+            zonedOccurrence.getMonth(),
+            zonedOccurrence.getDate(),
             timeFromDate.getHours(),
             timeFromDate.getMinutes(),
             timeFromDate.getSeconds(),

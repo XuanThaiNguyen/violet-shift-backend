@@ -4,6 +4,7 @@ import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shif
 import {
   addShift,
   bulkDeleteShift,
+  bulkUpdateShifts,
   deleteShift,
   getShift,
   isAssignedToShift,
@@ -653,6 +654,280 @@ router.post(
   "/bulk-delete/:repeatId",
   isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]),
   bulkDeleteShift,
+);
+
+/**
+ * @swagger
+ * /shifts/bulk-update/{repeatId}:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Bulk update shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: repeatId
+ *         in: path
+ *         description: Repeat ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               from:
+ *                 type: number
+ *                 description: From unix timestamp
+ *                 required: true
+ *                 example: 10
+ *               to:
+ *                 type: number
+ *                 description: To unix timestamp
+ *                 required: true
+ *                 example: 10
+ *               update:
+ *                 type: object
+ *                 description: Update shift
+ *                 properties:
+ *                   clientSchedules:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             client:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             priceBook:
+ *                               type: string
+ *                               example: 1234567890
+ *                             fund:
+ *                               type: string
+ *                               example: 1234567890
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: repetitiveId
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             repetitiveId:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             priceBook:
+ *                               type: string
+ *                               example: 1234567890
+ *                             fund:
+ *                               type: string
+ *                               example: 1234567890
+ *
+ *                   staffSchedules:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             staff:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             paymentMethod:
+ *                               type: string
+ *                               example: default
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: staff id
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             staff:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             paymentMethod:
+ *                               type: string
+ *                               example: default
+ *
+ *                   tasks:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               example: Task Name
+ *                             description:
+ *                               type: string
+ *                               example: This is a task description
+ *                             isMandatory:
+ *                               type: boolean
+ *                               example: true
+ *                             isCompleted:
+ *                               type: boolean
+ *                               example: false
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: repetitiveId
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             repetitiveId:
+ *                               type: string
+ *                               example: 1234567890
+ *                             name:
+ *                               type: string
+ *                               example: Task Name
+ *                             description:
+ *                               type: string
+ *                               example: This is a task description
+ *                             isMandatory:
+ *                               type: boolean
+ *                               example: true
+ *                             isCompleted:
+ *                               type: boolean
+ *                               example: false
+ *
+ *                   instruction:
+ *                     type: string
+ *                     example: This is a shift instruction
+ *
+ *                   shiftType:
+ *                     type: string
+ *                     example: personal_care
+ *                   additionalShiftTypes:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   allowances:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   mileageInvoicing:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   shiftMileage:
+ *                     type: number
+ *                     example: 10
+ *                   additionalCost:
+ *                     type: number
+ *                     example: 10
+ *                   ignoreStaffCount:
+ *                     type: boolean
+ *                     example: false
+ *                   confirmationRequired:
+ *                     type: boolean
+ *                     example: false
+ *                   acceptedDeclinable:
+ *                     type: boolean
+ *                     example: false
+ *
+ *                   timeFrom:
+ *                     type: number
+ *                     example: 10
+ *                   timeTo:
+ *                     type: number
+ *                     example: 10
+ *                   breakTime:
+ *                     type: number
+ *                     example: 10
+ *                   address:
+ *                     type: string
+ *                     example: 123 Main St
+ *                   unitNumber:
+ *                     type: string
+ *                     example: 123
+ *                   bonus:
+ *                     type: number
+ *                     example: 10
+ *                   dropOffAddress:
+ *                     type: string
+ *                     example: 123 Main St
+ *                   dropOffUnitNumber:
+ *                     type: string
+ *                     example: 123
+ *                   mileageCap:
+ *                     type: number
+ *                     example: 10
+ *                   mileage:
+ *                     type: number
+ *                     example: 10
+ *                   isCompanyVehicle:
+ *                     type: boolean
+ *                     example: false
+ *
+ *                   clientClockOutRequired:
+ *                     type: boolean
+ *                     example: false
+ *                   staffClockOutRequired:
+ *                     type: boolean
+ *                     example: false
+ *     responses:
+ *       200:
+ *         description: Delete shift
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   example: 'OK'
+ *
+ */
+router.post(
+  "/bulk-update/:repeatId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  bulkUpdateShifts,
 );
 
 /**
