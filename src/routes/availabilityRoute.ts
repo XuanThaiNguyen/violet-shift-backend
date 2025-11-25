@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { addAvailabilities, declineLeaveRequest, deleteAvailability, getAvailabilities, isOwnerOfAvailability } from "../controllers/availabilityController";
+import {
+  addAvailabilities,
+  declineLeaveRequest,
+  deleteAvailability,
+  getAvailabilities,
+  getStaffAvailabilities,
+  isOwnerOfAvailability,
+} from "../controllers/availabilityController";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import { ROLE_IDS } from "../constants/roles";
 import { AuthRequest } from "../middleware/type";
@@ -9,7 +16,7 @@ router.use(requireAuth);
 
 /**
  * @swagger
- * /availabilities:
+ * /availabilities/staffs/{staffId}:
  *   get:
  *     tags:
  *       - Availabilities
@@ -17,8 +24,8 @@ router.use(requireAuth);
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - name: staff
- *         in: query
+ *       - name: staffId
+ *         in: path
  *         description: Staff ID
  *         required: true
  *         type: string
@@ -85,13 +92,94 @@ router.use(requireAuth);
  *
  */
 router.get(
-  "/",
+  "/staffs/:staffId",
   isInRolesOrSelf(
     [ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR],
-    (req) => req.query.staff === (req as AuthRequest).userId,
+    (req) => req.params.staffId === (req as AuthRequest).userId,
   ),
-  getAvailabilities,
+  getStaffAvailabilities,
 );
+
+/**
+ * @swagger
+ * /availabilities:
+ *   get:
+ *     tags:
+ *       - Availabilities
+ *     summary: Get availabilities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: staffs[]
+ *         in: query
+ *         description: Staff IDs
+ *         required: false
+ *         type: array
+ *         items:
+ *           type: string
+ *       - name: type
+ *         in: query
+ *         description: Type
+ *         required: false
+ *         type: string
+ *       - name: isApproved
+ *         in: query
+ *         description: Is approved
+ *         required: false
+ *         type: boolean
+ *       - name: from
+ *         in: query
+ *         description: From
+ *         required: true
+ *         type: number
+ *       - name: to
+ *         in: query
+ *         description: To
+ *         required: true
+ *         type: number
+ *     responses:
+ *       200:
+ *         description: Get availabilities
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: 1234567890
+ *                   staff:
+ *                     type: string
+ *                     example: 1234567890
+ *                   type:
+ *                     type: string
+ *                     example: available
+ *                   from:
+ *                     type: number
+ *                     example: 1234567890
+ *                   to:
+ *                     type: number
+ *                     example: 1234567890
+ *                   note:
+ *                     type: string
+ *                     example: Note
+ *                   isApproved:
+ *                     type: boolean
+ *                     example: true
+ *                   isDeleted:
+ *                     type: boolean
+ *                     example: false
+ *                   createdAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ *                   updatedAt:
+ *                     type: string
+ *                     example: 2021-01-01T00:00:00.000Z
+ *
+ */
+router.get("/", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), getAvailabilities);
 
 /**
  * @swagger
@@ -168,14 +256,13 @@ router.get(
  */
 router.post("/", addAvailabilities);
 
-
 /**
  * @swagger
  * /availabilities/{id}/decline:
  *   post:
  *     tags:
  *       - Availabilities
- *     summary: Decline leave request   
+ *     summary: Decline leave request
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,7 +288,7 @@ router.post("/:id/decline", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), d
  *   delete:
  *     tags:
  *       - Availabilities
- *     summary: Delete availability   
+ *     summary: Delete availability
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -219,6 +306,10 @@ router.post("/:id/decline", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), d
  *               type: string
  *               example: 'ok'
  */
-router.delete("/:id", isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isOwnerOfAvailability), deleteAvailability);
+router.delete(
+  "/:id",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isOwnerOfAvailability),
+  deleteAvailability,
+);
 
 export default router;
