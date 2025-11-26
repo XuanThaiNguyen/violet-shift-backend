@@ -292,8 +292,56 @@ export const getAvailabilities = async (req: Request, res: Response) => {
       Math.max(getAvailabilitiesData.to, getAvailabilitiesData.from + 86400000),
       maxTo,
     );
+    const staffs = getAvailabilitiesData["staffs[]"];
     const availabilities = await Availability.find({
-      staff: mongoose.Types.ObjectId.createFromHexString(getAvailabilitiesData.staff),
+      ...((staffs?.length ?? 0) > 0 && {
+        staff: { $in: staffs },
+      }),
+      ...(getAvailabilitiesData.type !== undefined && { type: getAvailabilitiesData.type }),
+      ...(getAvailabilitiesData.isApproved !== undefined && {
+        isApproved: getAvailabilitiesData.isApproved,
+      }),
+      from: { $lte: clampTo },
+      to: { $gte: getAvailabilitiesData.from },
+      isDeleted: false,
+    });
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Availabilities fetched successfully",
+      data: availabilities,
+    });
+  } catch (error) {
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: AVAILABILITY_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const getStaffAvailabilities = async (req: Request, res: Response) => {
+  try {
+    const { error, value: getAvailabilitiesData } = validateGetAvailabilities(
+      req.query as unknown as GetAvailabilities,
+    );
+    const staff = req.params.staffId;
+    if (error) {
+      return sendResponse({
+        res,
+        statusCode: 400,
+        message: error.details[0].message,
+        code: AVAILABILITY_ERROR_CODE.INVALID_REQUEST,
+      });
+    }
+    const maxTo = addMonths(getAvailabilitiesData.to, 1).getTime();
+    const clampTo = Math.min(
+      Math.max(getAvailabilitiesData.to, getAvailabilitiesData.from + 86400000),
+      maxTo,
+    );
+    const availabilities = await Availability.find({
+      staff: mongoose.Types.ObjectId.createFromHexString(staff),
       ...(getAvailabilitiesData.type !== undefined && { type: getAvailabilitiesData.type }),
       ...(getAvailabilitiesData.isApproved !== undefined && {
         isApproved: getAvailabilitiesData.isApproved,

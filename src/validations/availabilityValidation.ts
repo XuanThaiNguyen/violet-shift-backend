@@ -17,7 +17,7 @@ interface CreateAvailability {
 }
 
 export interface GetAvailabilities {
-  staff: string;
+  "staffs[]"?: string[];
   type?: AvailabilityType;
   from: number;
   to: number;
@@ -50,12 +50,25 @@ export const validateCreateAvailability = (data: CreateAvailability) => {
   return schema.validate(data, { stripUnknown: true });
 };
 
-
 export const validateGetAvailabilities = (data: GetAvailabilities) => {
   const schema = Joi.object<GetAvailabilities>({
-    staff: Joi.string().required().label("User ID"),
+    "staffs[]": Joi.alternatives()
+      .try(Joi.array().items(Joi.string()).single(), Joi.string())
+      .custom((value) => {
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+          return value.includes(",")
+            ? value
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [value];
+        }
+        return [];
+      })
+      .optional(),
     type: Joi.string()
-      .valid(...availabilityTypes, '')
+      .valid(...availabilityTypes, "")
       .label("Type"),
     from: Joi.number().required().label("From"),
     to: Joi.number().required().label("To").min(Joi.ref("from")),
