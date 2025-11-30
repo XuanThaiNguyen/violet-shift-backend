@@ -288,10 +288,7 @@ export const getAvailabilities = async (req: Request, res: Response) => {
       });
     }
     const maxTo = addMonths(getAvailabilitiesData.to, 1).getTime();
-    const clampTo = Math.min(
-      Math.max(getAvailabilitiesData.to, getAvailabilitiesData.from + 86400000),
-      maxTo,
-    );
+    const clampTo = Math.min(getAvailabilitiesData.to, maxTo);
     const staffs = getAvailabilitiesData["staffs[]"];
     const availabilities = await Availability.find({
       ...((staffs?.length ?? 0) > 0 && {
@@ -336,10 +333,7 @@ export const getStaffAvailabilities = async (req: Request, res: Response) => {
       });
     }
     const maxTo = addMonths(getAvailabilitiesData.to, 1).getTime();
-    const clampTo = Math.min(
-      Math.max(getAvailabilitiesData.to, getAvailabilitiesData.from + 86400000),
-      maxTo,
-    );
+    const clampTo = Math.min(getAvailabilitiesData.to, maxTo);
     const availabilities = await Availability.find({
       staff: mongoose.Types.ObjectId.createFromHexString(staff),
       ...(getAvailabilitiesData.type !== undefined && { type: getAvailabilitiesData.type }),

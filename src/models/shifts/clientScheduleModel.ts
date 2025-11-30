@@ -24,6 +24,7 @@ const ClientScheduleSchema: Schema<IClientSchedule> = new Schema<IClientSchedule
       type: Schema.Types.ObjectId,
       ref: "Shift",
       index: true,
+      unique: true, // remove after implementing advanced shift
     },
     client: {
       required: true,

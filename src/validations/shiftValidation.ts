@@ -307,9 +307,9 @@ export const validateQueryShift = (data: IQueryShift) => {
 };
 
 export const validateBulkDeleteShift = (data: IBulkDeleteShift) => {
-  const now = Date.now();
+  const yesterday = Date.now() - 86400000;
   const schema = Joi.object<IBulkDeleteShift>({
-    from: Joi.number().required().min(now),
+    from: Joi.number().required().min(yesterday),
     to: Joi.number().required().min(Joi.ref("from")),
   });
   return schema.validate(data, { stripUnknown: true });
