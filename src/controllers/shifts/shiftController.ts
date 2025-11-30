@@ -499,21 +499,35 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
           throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
         }
 
-        const earliestShift = shifts[0];
-
-        const staffSchedule = await StaffSchedule.findOne(
+        const staffSchedules = await StaffSchedule.find(
           {
-            shift: earliestShift._id,
+            shift: { $in: shifts.map((shift) => shift._id) },
             isDeleted: false,
             timeFrom: { $lt: Date.now() },
           },
           undefined,
           { lean: true },
         );
-        if (staffSchedule) {
-          throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
-        }
-        const shiftIds = shifts.map((shift) => shift._id);
+
+        const happenedShiftIds = staffSchedules.reduce(
+          (acc, staffSchedule) => {
+            const shiftId = staffSchedule.shift.toString();
+            acc[shiftId] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
+
+        console.log("🚀 ~ happenedShiftIds:", happenedShiftIds);
+
+        const shiftIds = shifts.reduce((acc, shift) => {
+          const shiftId = shift._id.toString();
+          if (happenedShiftIds[shiftId]) {
+            return acc;
+          }
+          acc.push(shiftId);
+          return acc;
+        }, [] as string[]);
 
         // Now it's safe to delete the shifts
         await Promise.all([
@@ -638,8 +652,11 @@ export const updateShift = async (req: Request, res: Response) => {
 
         clientSchedules?.add?.forEach((clientSchedule) => {
           clientScheduleOps.push({
-            insertOne: {
-              document: {
+            updateOne: {
+              filter: {
+                shift: shiftId,
+              },
+              update: {
                 client: clientSchedule.client,
                 priceBook: clientSchedule.priceBook,
                 fund: clientSchedule.fund,
@@ -654,8 +671,11 @@ export const updateShift = async (req: Request, res: Response) => {
         });
         staffSchedules?.add?.forEach((staffSchedule) => {
           staffScheduleOps.push({
-            insertOne: {
-              document: {
+            updateOne: {
+              filter: {
+                shift: shiftId,
+              },
+              update: {
                 staff: staffSchedule.staff,
                 paymentMethod: staffSchedule.paymentMethod,
                 timeFrom: staffSchedule.timeFrom,
@@ -964,8 +984,11 @@ export const bulkUpdateShifts = async (req: Request, res: Response) => {
         const newClientFrom = zonedClientFrom.getTime();
         const newClientTo = newClientFrom + duration;
         clientScheduleOps.push({
-          insertOne: {
-            document: {
+          updateOne: {
+            filter: {
+              shift: shiftId,
+            },
+            update: {
               client: clientSchedule.client,
               priceBook: clientSchedule.priceBook,
               fund: clientSchedule.fund,
@@ -974,6 +997,7 @@ export const bulkUpdateShifts = async (req: Request, res: Response) => {
               shift: shiftId,
               repetitiveId: nanoid(10),
             },
+            upsert: true,
             timestamps: true,
           },
         });
@@ -995,8 +1019,11 @@ export const bulkUpdateShifts = async (req: Request, res: Response) => {
         const newStaffFrom = zonedStaffFrom.getTime();
         const newStaffTo = newStaffFrom + duration;
         staffScheduleOps.push({
-          insertOne: {
-            document: {
+          updateOne: {
+            filter: {
+              shift: shiftId,
+            },
+            update: {
               staff: staffSchedule.staff,
               paymentMethod: staffSchedule.paymentMethod,
               timeFrom: newStaffFrom,
@@ -1004,6 +1031,7 @@ export const bulkUpdateShifts = async (req: Request, res: Response) => {
               shift: shiftId,
               repetitiveId: nanoid(10),
             },
+            upsert: true,
             timestamps: true,
           },
         });
