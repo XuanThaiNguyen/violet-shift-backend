@@ -1226,36 +1226,325 @@ router.put(
   updateTaskStatus,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/staff-schedules/{scheduleId}/signature:
+ *   put:
+ *     tags:
+ *       - Shifts
+ *     summary: Add or update staff signature for a shift schedule
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *       - name: scheduleId
+ *         in: path
+ *         description: Staff schedule ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               signature:
+ *                 type: string
+ *                 example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUg....
+ *               signedAt:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2025-06-15T14:30:00.000Z
+ *             required:
+ *               - signature
+ *     responses:
+ *       200:
+ *         description: Signature added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 signature:
+ *                   type: string
+ *                 signedAt:
+ *                   type: string
+ *                   example: 2025-06-15T14:30:00.000Z
+ *                 updatedAt:
+ *                   type: string
+ */
 router.put(
   "/:shiftId/staff-schedules/:scheduleId/signature",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   addSignature,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Add progress update to a shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 example: Completed patient intake and initial assessment
+ *               percentage:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 example: 45
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["photo1.jpg", "photo2.jpg"]
+ *             required:
+ *               - description
+ *     responses:
+ *       201:
+ *         description: Progress entry created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   example: 1234567890
+ *                 shiftId:
+ *                   type: string
+ *                 staffId:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 percentage:
+ *                   type: number
+ *                 photos:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 createdAt:
+ *                   type: string
+ *                   example: 2025-06-15T14:30:00.000Z
+ */
 router.post(
   "/:shiftId/progresses",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   addProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get all progress updates for a shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: List of progress entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   percentage:
+ *                     type: number
+ *                   photos:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   staff:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                   createdAt:
+ *                     type: string
+ */
 router.get(
   "/:shiftId/progresses",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getProgresses,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses/{progressId}:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get a single progress entry
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - name: progressId
+ *         in: path
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Progress entry details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 percentage:
+ *                   type: number
+ *                 photos:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 staff:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ */
 router.get(
   "/:shiftId/progresses/:progressId",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses/{progressId}:
+ *   put:
+ *     tags:
+ *       - Shifts
+ *     summary: Update a progress entry
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - name: progressId
+ *         in: path
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *               percentage:
+ *                 type: number
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Progress updated successfully
+ */
 router.put(
   "/:shiftId/progresses/:progressId",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progress-events:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get timeline of all progress events for a shift (including signatures, clock-ins, etc.)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Chronological list of progress events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                     enum: [progress, signature, clock-in, clock-out, note]
+ *                     example: progress
+ *                   description:
+ *                     type: string
+ *                   staffName:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                     example: 2025-06-15T14:30:00.000Z
+ *                   metadata:
+ *                     type: object
+ */
 router.get(
   "/:shiftId/progress-events",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),

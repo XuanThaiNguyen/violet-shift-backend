@@ -123,8 +123,56 @@ const router = Router();
  */
 router.get("/archived", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getArchivedStaffs);
 
+/**
+ * @swagger
+ * /staffs/archive:
+ *   post:
+ *     tags:
+ *       - Staffs
+ *     summary: Archive one or multiple staff members
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               staffIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["60f1b2b3e4b0c1234567890", "60f1b2b3e4b0c1234567891"]
+ *             required:
+ *               - staffIds
+ *     responses:
+ *       200:
+ *         description: Staff member(s) archived successfully
+ */
 router.post("/archive", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), archiveStaff);
+
+/**
+ * @swagger
+ * /staffs:
+ *   get:
+ *     tags:
+ *       - Staffs
+ *     summary: Get all active staff members
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active staff
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Staff'
+ */
 router.get("/", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaffs);
+
 /**
  * @swagger
  * /staffs/invite:
@@ -346,6 +394,29 @@ router.get("/accept-invitation", acceptInvitation);
  */
 router.patch("/:staffId", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), updateStaff);
 
+/**
+ * @swagger
+ * /staffs/{staffId}:
+ *   get:
+ *     tags:
+ *       - Staffs
+ *     summary: Get staff member by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: staffId
+ *         in: path
+ *         description: Staff ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Staff details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Staff'
+ */
 router.get("/:staffId", requireAuth, isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.HR]), getStaff);
 
 export default router;
