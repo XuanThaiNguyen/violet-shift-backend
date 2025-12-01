@@ -1,4 +1,4 @@
-const { createIndexIfNotExists } = require("../migration-helpers");
+const { createIndexIfNotExists, fetchCollections } = require("../migration-helpers");
 
 module.exports = {
   /**
@@ -15,7 +15,7 @@ module.exports = {
     // Create collections
     console.log("🚀 ~ Creating Availability collection...");
     // Availability collections
-    await createCollectionIfNotExists(db, collections, "availability", {
+    await createIndexIfNotExists(db, collections, "availability", {
       bsonType: "object",
       required: ["staff", "timeFrom", "timeTo", "type"],
       properties: {
@@ -96,5 +96,13 @@ module.exports = {
     // TODO write the statements to rollback your migration (if possible)
     // Example:
     // await db.collection('albums').updateOne({artist: 'The Beatles'}, {$set: {blacklisted: false}});
+    await db.dropCollection("availability");
+
+    await db.collection("staffSchedules").dropIndex({
+      shift: 1,
+    });
+    await db.collection("clientSchedules").dropIndex({
+      shift: 1,
+    });
   },
 };
