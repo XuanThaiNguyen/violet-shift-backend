@@ -9,6 +9,7 @@ import {
 import { ShiftProgressTypes, ShiftProgressTypesEnum } from "../models/shifts/shiftProgressModel";
 import { PaymentMethods, PaymentMethodsEnum } from "../models/shifts/staffScheduleModel";
 import { isValidTimeZone } from "../utils/tz";
+import { validateRRule } from "../utils/scheduler";
 
 export type ShiftProgress = {
   description: string;
@@ -158,6 +159,13 @@ export interface IUpdateShift {
   staffClockOutRequired: boolean;
   // Todo: add more status later
 }
+
+export interface IBulkUpdateShift {
+  payload: IUpdateShift;
+  from: number;
+  to: number;
+}
+
 export interface IQueryShift {
   shiftId: string;
 }
@@ -190,10 +198,9 @@ const repeatSchema = Joi.object<Repeat>({
   pattern: Joi.string()
     .required()
     .custom((value, helper) => {
-      const { valid, error } = validateCronExpression(value);
+      const { valid, error } = validateRRule(value);
       if (!valid) {
-        console.error({ error });
-        return helper.error("Invalid cron expression");
+        return helper.error(error!);
       }
       return value;
     }),
@@ -300,9 +307,9 @@ export const validateQueryShift = (data: IQueryShift) => {
 };
 
 export const validateBulkDeleteShift = (data: IBulkDeleteShift) => {
-  const now = Date.now();
+  const yesterday = Date.now() - 86400000;
   const schema = Joi.object<IBulkDeleteShift>({
-    from: Joi.number().required().min(now),
+    from: Joi.number().required().min(yesterday),
     to: Joi.number().required().min(Joi.ref("from")),
   });
   return schema.validate(data, { stripUnknown: true });
@@ -398,6 +405,107 @@ export const validateUpdateShift = (data: IUpdateShift) => {
     // clock-out information
     clientClockOutRequired: Joi.boolean().optional(),
     staffClockOutRequired: Joi.boolean().optional(),
+  });
+
+  return schema.validate(data, { stripUnknown: true });
+};
+
+export const validateBulkUpdateShift = (data: IBulkUpdateShift) => {
+  const updateClientScheduleSchema = clientScheduleSchema.keys({
+    repetitiveId: Joi.string().required(),
+  });
+
+  const updateShiftTaskSchema = shiftTaskSchema.keys({
+    repetitiveId: Joi.string().required(),
+  });
+
+  const clientSchema = Joi.object<{
+    add: ClientSchedule[];
+    delete: string[]; // repetitiveIds
+    update: ClientSchedule[];
+  }>({
+    add: Joi.array().items(clientScheduleSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(updateClientScheduleSchema).optional().default([]),
+  });
+
+  const staffSchema = Joi.object<{
+    add: StaffSchedule[];
+    delete: string[]; // staff ids
+    update: StaffSchedule[];
+  }>({
+    add: Joi.array().items(staffScheduleSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(staffScheduleSchema).optional().default([]),
+  });
+
+  const taskSchema = Joi.object<{
+    add: ShiftTask[];
+    delete: string[]; // repetitiveIds
+    update: ShiftTask[];
+  }>({
+    add: Joi.array().items(shiftTaskSchema).optional().default([]),
+    delete: Joi.array().items(Joi.string()).optional().default([]),
+    update: Joi.array().items(updateShiftTaskSchema).optional().default([]),
+  });
+
+  const updateSchema = Joi.object<IUpdateShift>({
+    clientSchedules: clientSchema,
+    staffSchedules: staffSchema,
+    tasks: taskSchema,
+
+    // instruction
+    instruction: Joi.string().optional().allow(""),
+
+    // shift information
+    shiftType: Joi.string()
+      .valid(...ShiftTypes)
+      .optional(),
+    additionalShiftTypes: Joi.array()
+      .items(Joi.string().valid(...ShiftTypes))
+      .optional(),
+    allowances: Joi.array()
+      .items(Joi.string().valid(...Allowances))
+      .optional(),
+    mileageInvoicing: Joi.array().items(Joi.string()).optional(),
+    shiftMileage: Joi.number().optional(),
+    additionalCost: Joi.number().optional(),
+    ignoreStaffCount: Joi.boolean().optional(),
+    confirmationRequired: Joi.boolean().optional(),
+    acceptedDeclinable: Joi.boolean().optional(),
+
+    // time and location
+    timeFrom: Joi.number().required(),
+    timeTo: Joi.number().required().min(Joi.ref("timeFrom")),
+    breakTime: Joi.number().optional(),
+    address: Joi.string().optional().allow(""),
+    unitNumber: Joi.string().optional().allow(""),
+    bonus: Joi.number().optional(),
+    dropOffAddress: Joi.string().optional().allow(""),
+    dropOffUnitNumber: Joi.string().optional().allow(""),
+    timezone: Joi.string()
+      .required()
+      .custom((value, helper) => {
+        if (value && !isValidTimeZone(value)) {
+          return helper.error("Invalid timezone");
+        }
+        return value;
+      }),
+
+    // mileage information
+    mileageCap: Joi.number().optional(),
+    mileage: Joi.number().optional(),
+    isCompanyVehicle: Joi.boolean().optional(),
+
+    // clock-out information
+    clientClockOutRequired: Joi.boolean().optional(),
+    staffClockOutRequired: Joi.boolean().optional(),
+  });
+
+  const schema = Joi.object<IBulkUpdateShift>({
+    payload: updateSchema,
+    from: Joi.number().required(),
+    to: Joi.number().required().min(Joi.ref("from")),
   });
 
   return schema.validate(data, { stripUnknown: true });

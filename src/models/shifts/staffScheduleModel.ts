@@ -59,6 +59,7 @@ const StaffScheduleSchema: Schema<IStaffSchedule> = new Schema<IStaffSchedule>(
       ref: "Shift",
       trim: true,
       index: true,
+      unique: true, // remove after implementing advanced shift
     },
     staff: {
       required: true,

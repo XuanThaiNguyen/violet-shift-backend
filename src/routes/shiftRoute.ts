@@ -4,6 +4,7 @@ import { getSchedulesByShiftId as getClientSchedules } from "../controllers/shif
 import {
   addShift,
   bulkDeleteShift,
+  bulkUpdateShifts,
   deleteShift,
   getShift,
   isAssignedToShift,
@@ -113,7 +114,8 @@ router.use(requireAuth);
  *                     properties:
  *                       pattern:
  *                         type: string
- *                         example: 0 0 1 * *
+ *                         example: FREQ=DAILY;INTERVAL=3;DTSTART=20251102T090000Z;UNTIL=20251231T090000Z
+ *                         description: RRule string, see https://github.com/jakubroztocil/rrule for more details
  *                       endDate:
  *                         type: number
  *                         example: 10
@@ -656,6 +658,280 @@ router.post(
 
 /**
  * @swagger
+ * /shifts/bulk-update/{repeatId}:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Bulk update shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: repeatId
+ *         in: path
+ *         description: Repeat ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               from:
+ *                 type: number
+ *                 description: From unix timestamp
+ *                 required: true
+ *                 example: 10
+ *               to:
+ *                 type: number
+ *                 description: To unix timestamp
+ *                 required: true
+ *                 example: 10
+ *               update:
+ *                 type: object
+ *                 description: Update shift
+ *                 properties:
+ *                   clientSchedules:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             client:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             priceBook:
+ *                               type: string
+ *                               example: 1234567890
+ *                             fund:
+ *                               type: string
+ *                               example: 1234567890
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: repetitiveId
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             repetitiveId:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             priceBook:
+ *                               type: string
+ *                               example: 1234567890
+ *                             fund:
+ *                               type: string
+ *                               example: 1234567890
+ *
+ *                   staffSchedules:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             staff:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             paymentMethod:
+ *                               type: string
+ *                               example: default
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: staff id
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             staff:
+ *                               type: string
+ *                               example: 1234567890
+ *                             timeFrom:
+ *                               type: number
+ *                               example: 10
+ *                             timeTo:
+ *                               type: number
+ *                               example: 10
+ *                             paymentMethod:
+ *                               type: string
+ *                               example: default
+ *
+ *                   tasks:
+ *                     type: object
+ *                     properties:
+ *                       add:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               example: Task Name
+ *                             description:
+ *                               type: string
+ *                               example: This is a task description
+ *                             isMandatory:
+ *                               type: boolean
+ *                               example: true
+ *                             isCompleted:
+ *                               type: boolean
+ *                               example: false
+ *                       delete:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                           example: 1234567890
+ *                           description: repetitiveId
+ *                       update:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             repetitiveId:
+ *                               type: string
+ *                               example: 1234567890
+ *                             name:
+ *                               type: string
+ *                               example: Task Name
+ *                             description:
+ *                               type: string
+ *                               example: This is a task description
+ *                             isMandatory:
+ *                               type: boolean
+ *                               example: true
+ *                             isCompleted:
+ *                               type: boolean
+ *                               example: false
+ *
+ *                   instruction:
+ *                     type: string
+ *                     example: This is a shift instruction
+ *
+ *                   shiftType:
+ *                     type: string
+ *                     example: personal_care
+ *                   additionalShiftTypes:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   allowances:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   mileageInvoicing:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       example: []
+ *                   shiftMileage:
+ *                     type: number
+ *                     example: 10
+ *                   additionalCost:
+ *                     type: number
+ *                     example: 10
+ *                   ignoreStaffCount:
+ *                     type: boolean
+ *                     example: false
+ *                   confirmationRequired:
+ *                     type: boolean
+ *                     example: false
+ *                   acceptedDeclinable:
+ *                     type: boolean
+ *                     example: false
+ *
+ *                   timeFrom:
+ *                     type: number
+ *                     example: 10
+ *                   timeTo:
+ *                     type: number
+ *                     example: 10
+ *                   breakTime:
+ *                     type: number
+ *                     example: 10
+ *                   address:
+ *                     type: string
+ *                     example: 123 Main St
+ *                   unitNumber:
+ *                     type: string
+ *                     example: 123
+ *                   bonus:
+ *                     type: number
+ *                     example: 10
+ *                   dropOffAddress:
+ *                     type: string
+ *                     example: 123 Main St
+ *                   dropOffUnitNumber:
+ *                     type: string
+ *                     example: 123
+ *                   mileageCap:
+ *                     type: number
+ *                     example: 10
+ *                   mileage:
+ *                     type: number
+ *                     example: 10
+ *                   isCompanyVehicle:
+ *                     type: boolean
+ *                     example: false
+ *
+ *                   clientClockOutRequired:
+ *                     type: boolean
+ *                     example: false
+ *                   staffClockOutRequired:
+ *                     type: boolean
+ *                     example: false
+ *     responses:
+ *       200:
+ *         description: Delete shift
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   example: 'OK'
+ *
+ */
+router.post(
+  "/bulk-update/:repeatId",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
+  bulkUpdateShifts,
+);
+
+/**
+ * @swagger
  * /shifts/{shiftId}/staff-schedules:
  *   get:
  *     tags:
@@ -950,36 +1226,325 @@ router.put(
   updateTaskStatus,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/staff-schedules/{scheduleId}/signature:
+ *   put:
+ *     tags:
+ *       - Shifts
+ *     summary: Add or update staff signature for a shift schedule
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *       - name: scheduleId
+ *         in: path
+ *         description: Staff schedule ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               signature:
+ *                 type: string
+ *                 example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUg....
+ *               signedAt:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2025-06-15T14:30:00.000Z
+ *             required:
+ *               - signature
+ *     responses:
+ *       200:
+ *         description: Signature added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 signature:
+ *                   type: string
+ *                 signedAt:
+ *                   type: string
+ *                   example: 2025-06-15T14:30:00.000Z
+ *                 updatedAt:
+ *                   type: string
+ */
 router.put(
   "/:shiftId/staff-schedules/:scheduleId/signature",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   addSignature,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Add progress update to a shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 example: Completed patient intake and initial assessment
+ *               percentage:
+ *                 type: number
+ *                 minimum: 0
+ *                 maximum: 100
+ *                 example: 45
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["photo1.jpg", "photo2.jpg"]
+ *             required:
+ *               - description
+ *     responses:
+ *       201:
+ *         description: Progress entry created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   example: 1234567890
+ *                 shiftId:
+ *                   type: string
+ *                 staffId:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 percentage:
+ *                   type: number
+ *                 photos:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 createdAt:
+ *                   type: string
+ *                   example: 2025-06-15T14:30:00.000Z
+ */
 router.post(
   "/:shiftId/progresses",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   addProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get all progress updates for a shift
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: List of progress entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   description:
+ *                     type: string
+ *                   percentage:
+ *                     type: number
+ *                   photos:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   staff:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                   createdAt:
+ *                     type: string
+ */
 router.get(
   "/:shiftId/progresses",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getProgresses,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses/{progressId}:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get a single progress entry
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - name: progressId
+ *         in: path
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Progress entry details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 description:
+ *                   type: string
+ *                 percentage:
+ *                   type: number
+ *                 photos:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 staff:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ */
 router.get(
   "/:shiftId/progresses/:progressId",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progresses/{progressId}:
+ *   put:
+ *     tags:
+ *       - Shifts
+ *     summary: Update a progress entry
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         required: true
+ *         type: string
+ *       - name: progressId
+ *         in: path
+ *         required: true
+ *         type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *               percentage:
+ *                 type: number
+ *               photos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Progress updated successfully
+ */
 router.put(
   "/:shiftId/progresses/:progressId",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   updateProgress,
 );
 
+/**
+ * @swagger
+ * /shifts/{shiftId}/progress-events:
+ *   get:
+ *     tags:
+ *       - Shifts
+ *     summary: Get timeline of all progress events for a shift (including signatures, clock-ins, etc.)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Chronological list of progress events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                   type:
+ *                     type: string
+ *                     enum: [progress, signature, clock-in, clock-out, note]
+ *                     example: progress
+ *                   description:
+ *                     type: string
+ *                   staffName:
+ *                     type: string
+ *                   timestamp:
+ *                     type: string
+ *                     example: 2025-06-15T14:30:00.000Z
+ *                   metadata:
+ *                     type: object
+ */
 router.get(
   "/:shiftId/progress-events",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
