@@ -375,7 +375,19 @@ export const deleteShift = async (req: Request, res: Response) => {
             { new: true, session },
           ),
           StaffSchedule.findOne(
-            { shift: shiftId, isDeleted: false, timeFrom: { $lt: Date.now() } },
+            {
+              shift: shiftId,
+              isDeleted: false,
+              $or: [
+                {
+                  // schedule intime
+                  $and: [{ timeFrom: { $lte: Date.now() } }, { timeTo: { $gte: Date.now() } }],
+                },
+                {
+                  clocksInAt: { $lte: Date.now() },
+                },
+              ],
+            },
             undefined,
             { lean: true },
           ),
@@ -385,7 +397,7 @@ export const deleteShift = async (req: Request, res: Response) => {
           throw new Error(INTERNAL_ERROR.SHIFT_NOT_FOUND);
         }
 
-        if (shift.timeFrom < Date.now() || staffSchedule) {
+        if ((shift.timeFrom < Date.now() && shift.timeTo > Date.now()) || staffSchedule) {
           throw new Error(INTERNAL_ERROR.SHIFT_HAPPENED);
         }
 
@@ -517,8 +529,6 @@ export const bulkDeleteShift = async (req: Request, res: Response) => {
           },
           {} as Record<string, boolean>,
         );
-
-        console.log("🚀 ~ happenedShiftIds:", happenedShiftIds);
 
         const shiftIds = shifts.reduce((acc, shift) => {
           const shiftId = shift._id.toString();
