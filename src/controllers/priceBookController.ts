@@ -9,6 +9,8 @@ import {
 } from "../validations/priceBookValidation";
 
 export const addPriceBook = async (req: Request, res: Response) => {
+  console.log("123123");
+
   try {
     const { error, value: priceBookData } = validateAddPriceBook(req.body);
     if (error)
