@@ -5,3 +5,6 @@ dist_consumer
 .env.local
 .env.development
 uploads
+
+# secrets
+secrets/

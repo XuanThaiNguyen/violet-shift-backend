@@ -10,6 +10,7 @@ import RedisService from "./services/redis";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import { logger as winstonLogger } from "./utils/logger";
+import { NotiService } from "./services/noti-service";
 
 const logger = winstonLogger.child({
   service: "root",
@@ -19,11 +20,15 @@ const logger = winstonLogger.child({
 dotenv.config();
 const envSchema = Joi.object({
   PORT: Joi.number().default(3000),
+  ENVIRONMENT: Joi.string().default("production").valid("development", "staging", "production"),
   MONGO_URL: Joi.string().required(),
   MONGO_LOG_URL: Joi.string().optional(),
   JWT_SECRET: Joi.string().required(),
   PREFIX: Joi.string().default("/"),
   REDIS_URL: Joi.string().required(),
+  NATS_URL: Joi.string().required(),
+  NATS_USER_JWT: Joi.string().required(),
+  NATS_NKEY_SEED: Joi.string().required(),
 });
 const { error } = envSchema.validate(process.env, { allowUnknown: true });
 if (error) {
@@ -70,6 +75,7 @@ route(app);
 const server = app.listen(port, () => {
   connectDB();
   RedisService.init();
+  NotiService.init();
   logger.info(`Server is running on port ${port}`);
 });
 
