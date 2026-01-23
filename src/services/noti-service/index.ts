@@ -3,6 +3,12 @@ import { JetStreamClient, jwtAuthenticator, StreamInfo } from "nats";
 import { logger as winstonLogger } from "../../utils/logger";
 import { STREAM_NAMES } from "../../constants/nats";
 
+const NOTI_SUBJECTS = {
+  EMAIL: "noti.email",
+  SMS: "noti.sms",
+  PUSH: "noti.push",
+};
+
 export class NotiService {
   private static instance: NotiService;
   private natsService!: NatsService;
@@ -31,16 +37,24 @@ export class NotiService {
     });
 
     this.instance.notiStream = this.instance.natsService.getJetStreamClient();
-
-    const streamInfo = await this.instance.notiStream.streams.get(STREAM_NAMES.NOTI_STREAM);
-
-    if (!streamInfo) {
-      throw new Error(`stream '${STREAM_NAMES.NOTI_STREAM}' is not deployed yet`);
-    }
   }
 
   async sendNotification(subject: string, data: any) {
     const ack = await this.notiStream.publish(subject, JSON.stringify(data));
+    if (ack) {
+      this.logger.info(`Published data to noti service`);
+    }
+  }
+
+  async sendEmail(data: any) {
+    const ack = await this.notiStream.publish(NOTI_SUBJECTS.EMAIL, JSON.stringify(data));
+    if (ack) {
+      this.logger.info(`Published data to noti service`);
+    }
+  }
+
+  async sendPush(data: any) {
+    const ack = await this.notiStream.publish(NOTI_SUBJECTS.PUSH, JSON.stringify(data));
     if (ack) {
       this.logger.info(`Published data to noti service`);
     }

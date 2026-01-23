@@ -81,6 +81,7 @@ export class NatsService {
   async createJetStreamManager(options?: JetStreamOptions) {
     this.jsm = await this.nc.jetstreamManager(options);
     this.logger.info("JetStream manager created");
+    return this.jsm;
   }
 
   async jsmAdd(conf: Partial<StreamConfig>) {
