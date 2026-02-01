@@ -1,7 +1,6 @@
 import { NatsService } from "../nats";
 import { JetStreamClient, jwtAuthenticator, StreamInfo } from "nats";
 import { logger as winstonLogger } from "../../utils/logger";
-import { STREAM_NAMES } from "../../constants/nats";
 
 const NOTI_SUBJECTS = {
   EMAIL: "noti.email",
@@ -47,9 +46,13 @@ export class NotiService {
   }
 
   async sendEmail(data: any) {
-    const ack = await this.notiStream.publish(NOTI_SUBJECTS.EMAIL, JSON.stringify(data));
-    if (ack) {
-      this.logger.info(`Published data to noti service`);
+    try {
+      const ack = await this.notiStream.publish(NOTI_SUBJECTS.EMAIL, JSON.stringify(data));
+      if (ack) {
+        this.logger.info(`Published data to noti service`);
+      }
+    } catch (error) {
+      this.logger.error(error);
     }
   }
 

@@ -14,7 +14,7 @@ const streamsConfigs: Array<Partial<StreamConfig>> = [
   // email
   {
     name: STREAM_NAMES.EMAIL_STREAM,
-    subjects: ["noti.email"],
+    subjects: ["noti.email.*"],
     storage: StorageType.File,
     max_msg_size: 1024 * 1024, // 1Mb
     max_bytes: 1024 * 1024 * 256, // 256Mb
@@ -44,7 +44,7 @@ const streamsConfigs: Array<Partial<StreamConfig>> = [
   // push
   {
     name: STREAM_NAMES.PUSH_STREAM,
-    subjects: ["noti.push"],
+    subjects: ["noti.push.*"],
     storage: StorageType.File,
     max_msg_size: 1024 * 1024, // 1Mb
     max_bytes: 1024 * 1024 * 256, // 256Mb

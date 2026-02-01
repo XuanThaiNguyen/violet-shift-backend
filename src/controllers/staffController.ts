@@ -440,15 +440,20 @@ export const inviteStaff = async (req: Request, res: Response) => {
       logger.info(`Set up URL: ${setUpUrl}`);
     }
 
-    const notiService = NotiService.getInstance();
-    notiService.sendNotification("violet-shift-noti-stream", {
-      type: "email",
-      payload: {
-        template: "invite_member",
-        data: {
-          setUpUrl: setUpUrl,
-        },
+    const instance = NotiService.getInstance();
+    instance.sendEmail({
+      header: {
         to: invitationData.email,
+        // cc: "[EMAIL_ADDRESS]",
+        // bcc: "[EMAIL_ADDRESS]",
+        // from: "[EMAIL_ADDRESS]",
+        subject: "VioletShift - Reset password",
+      },
+      template: "RESET_PASSWORD_TEMPLATE",
+      data: {
+        name: invitationData.firstName,
+        reset_url: setUpUrl,
+        title: "Reset Your Password",
       },
     });
 

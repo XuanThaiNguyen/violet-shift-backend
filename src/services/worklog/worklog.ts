@@ -5,6 +5,7 @@ import { TZDate } from "@date-fns/tz";
 import mongoose from "mongoose";
 import WorkLog from "../../models/payrolls/workLogs";
 import { WorkLogSegment } from "../../models/payrolls/workLogSegments";
+import { WORKLOG_ERROR_CODE } from "../../constants/errorCode";
 
 interface IWorklog {
   staff: string;
@@ -24,6 +25,7 @@ export class WorklogService {
     const logger = this.logger.child({
       worklog,
     });
+    let isLogged = false;
     try {
       const timeRules = await this.timeruleService.getTimeRules();
       const baseTimeRules = timeRules.map((rule) => ({
@@ -40,13 +42,16 @@ export class WorklogService {
       const session = await mongoose.startSession();
       try {
         await session.withTransaction(async () => {
-          const worklogDoc = await WorkLog.insertOne({
-            staff: worklog.staff,
-            shift: worklog.shift,
-            startedAt: worklog.startTime,
-            endedAt: worklog.endTime,
-            hours: ((worklog.endTime - worklog.startTime) / 3600000).toFixed(2),
-          }, { session });
+          const worklogDoc = await WorkLog.insertOne(
+            {
+              staff: worklog.staff,
+              shift: worklog.shift,
+              startedAt: worklog.startTime,
+              endedAt: worklog.endTime,
+              hours: ((worklog.endTime - worklog.startTime) / 3600000).toFixed(2),
+            },
+            { session },
+          );
 
           if (!worklogDoc._id) {
             throw new Error("Failed to create worklog");
@@ -62,20 +67,29 @@ export class WorklogService {
               startedAt: segment.from,
               endedAt: segment.to,
               hours: (segment.duration / 3600000).toFixed(2),
-            }
+            };
           });
           await WorkLogSegment.insertMany(worklogSegments, { session });
-          logger.info(`Worklog ${worklogId} and its segments in shift ${worklog.shift} logged successfully`);
+          logger.info(
+            `Worklog ${worklogId} and its segments in shift ${worklog.shift} logged successfully`,
+          );
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error("Error logging work:", error);
+
+        if (error.code === 11000 || error.message?.includes("duplicate key error")) {
+          isLogged = true;
+        }
         try {
           await session.abortTransaction();
-        } catch { }
+        } catch {}
       } finally {
         session.endSession();
       }
-      
+
+      if (isLogged) {
+        throw new Error(WORKLOG_ERROR_CODE.WORK_LOGGED.toString());
+      }
     } catch (error) {
       logger.error("Error logging work:", error);
     }

@@ -23,6 +23,8 @@ import {
   clockIn,
   clockOut,
   getSchedulesByShiftId as getStaffSchedules,
+  isAssignedToSchedule,
+  logWork,
 } from "../controllers/shifts/staffScheduleController";
 import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 
@@ -986,6 +988,44 @@ router.get(
   "/:shiftId/staff-schedules",
   isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToShift),
   getStaffSchedules,
+);
+
+/**
+ * @swagger
+ * /shifts/:shiftId/staff-schedules/:scheduleId/log-work:
+ *   post:
+ *     tags:
+ *       - Shifts
+ *     summary: Staff clocks in
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: shiftId
+ *         in: path
+ *         description: Shift ID
+ *         required: true
+ *         type: string
+ *       - name: scheduleId
+ *         in: path
+ *         description: Schedule ID
+ *         required: true
+ *         type: string
+ *     responses:
+ *       200:
+ *         description: Staff clocks in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: boolean
+ *                   example: true
+ */
+router.post(
+  "/:shiftId/staff-schedules/:scheduleId/log-work",
+  isInRolesOrSelf([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR], isAssignedToSchedule),
+  logWork,
 );
 
 /**
