@@ -1,11 +1,17 @@
 import { Router } from "express";
-import { isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
+import { isInRoles, isInRolesOrSelf, requireAuth } from "../middleware/authMiddleware";
 import { ROLE_IDS } from "../constants/roles";
-import { getByStaff, shiftLogsByStaff } from "../controllers/payrolls/worklogController";
+import {
+  getByStaff,
+  shiftLogsByStaff,
+  summaryByStaff,
+} from "../controllers/payrolls/worklogController";
 import { AuthRequest } from "../middleware/type";
 
 const router = Router();
 router.use(requireAuth);
+
+router.get("/summary", isInRoles([ROLE_IDS.ADMIN, ROLE_IDS.COORDINATOR]), summaryByStaff);
 
 /**
  * @swagger
