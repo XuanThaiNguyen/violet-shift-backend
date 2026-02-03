@@ -1,7 +1,7 @@
 import { addMonths } from "date-fns";
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
-import { SHIFT_ERROR_CODE } from "../../constants/errorCode";
+import { SHIFT_ERROR_CODE, WORKLOG_ERROR_CODE } from "../../constants/errorCode";
 import { AuthRequest } from "../../middleware/type";
 import Shift from "../../models/shifts/shiftModel";
 import StaffSchedule, { IStaffSchedule } from "../../models/shifts/staffScheduleModel";
@@ -18,6 +18,10 @@ import worklogService from "../../services/worklog/worklog";
 export const isAssignedToSchedule = async (req: Request) => {
   try {
     const scheduleId = req.params.scheduleId;
+    console.log(
+      "🔍 ~  ~ src/controllers/shifts/staffScheduleController.ts:20 ~ scheduleId:",
+      scheduleId,
+    );
     const userId = (req as AuthRequestWithSchedule).userId;
 
     const schedule = await StaffSchedule.findOne(
@@ -153,11 +157,91 @@ export const getSchedulesByShiftId = async (req: Request, res: Response) => {
   }
 };
 
+export const logWork = async (req: Request, res: Response) => {
+  try {
+    const shiftId = req.params.shiftId;
+    const scheduleId = req.params.scheduleId;
+
+    const [shift, schedule] = await Promise.all([
+      Shift.findById(shiftId),
+      StaffSchedule.findOne({
+        _id: scheduleId,
+        shift: shiftId,
+        isDeleted: false,
+      }),
+    ]);
+
+    if (!shift) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Shift not found",
+        code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+      });
+    }
+
+    if (!schedule) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Staff schedule not found or already clocked in",
+        code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
+      });
+    }
+
+    // TODO: fire event to calculate payroll. Must setup kafka
+    // I know it may cause an issue worklog service has some problems
+    // But it will be fixed if we setup kafka or nats
+    await worklogService.logWork({
+      // @ts-ignore
+      scheduleId: scheduleId,
+      staff: schedule.staff.toString(),
+      shift: shiftId,
+      startTime: schedule.timeFrom,
+      endTime: schedule.timeTo, // should be clocksOutAt but this is the requirement.
+      timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
+    });
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      message: "Clock in successfully",
+      data: schedule!.toObject({ virtuals: true }),
+    });
+  } catch (error: any) {
+    if (error.message === WORKLOG_ERROR_CODE.WORK_LOGGED.toString()) {
+      return sendResponse({
+        res,
+        statusCode: 500,
+        message: "Internal server error",
+        code: WORKLOG_ERROR_CODE.WORK_LOGGED,
+      });
+    }
+    return sendResponse({
+      res,
+      statusCode: 500,
+      message: "Internal server error",
+      code: SHIFT_ERROR_CODE.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
 export const clockIn = async (req: Request, res: Response) => {
   try {
     const shiftId = req.params.shiftId;
     const scheduleId = req.params.scheduleId;
     const userId = (req as AuthRequest).userId;
+
+    const shift = await Shift.findById(shiftId);
+    if (!shift) {
+      return sendResponse({
+        res,
+        statusCode: 404,
+        message: "Shift not found",
+        code: SHIFT_ERROR_CODE.SHIFT_NOT_FOUND,
+      });
+    }
+
     const schedule = await StaffSchedule.findOne({
       _id: scheduleId,
       staff: userId,
@@ -168,7 +252,7 @@ export const clockIn = async (req: Request, res: Response) => {
       return sendResponse({
         res,
         statusCode: 404,
-        message: "Staff schedule not found or happened in some other time or already clocked in",
+        message: "Staff schedule not found or already clocked in",
         code: SHIFT_ERROR_CODE.STAFF_SCHEDULE_NOT_FOUND,
       });
     }
@@ -182,7 +266,8 @@ export const clockIn = async (req: Request, res: Response) => {
       });
     }
 
-    if (schedule.timeFrom > Date.now()) {
+    const startOffset = 15 * 60 * 1000; // 15 minutes
+    if (schedule.timeFrom - startOffset > Date.now()) {
       return sendResponse({
         res,
         statusCode: 400,
@@ -191,7 +276,8 @@ export const clockIn = async (req: Request, res: Response) => {
       });
     }
 
-    if (schedule.timeTo < Date.now()) {
+    const endOffset = 24 * 60 * 60 * 1000; // 1 day
+    if (schedule.timeTo + endOffset < Date.now()) {
       return sendResponse({
         res,
         statusCode: 400,
@@ -202,6 +288,17 @@ export const clockIn = async (req: Request, res: Response) => {
 
     schedule.clocksInAt = Date.now();
     await schedule.save();
+
+    // TODO: fire event to calculate payroll. Must setup kafka
+    // I know it may cause an issue worklog service has some problems
+    // But it will be fixed if we setup kafka or nats
+    worklogService.logWork({
+      staff: userId,
+      shift: shiftId,
+      startTime: schedule.timeFrom,
+      endTime: schedule.timeTo, // should be clocksOutAt but this is the requirement.
+      timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
+    });
 
     return sendResponse({
       res,
@@ -295,20 +392,11 @@ export const clockOut = async (req: Request, res: Response) => {
     schedule.clocksOutAt = Date.now();
     await schedule.save();
 
-    // TODO: fire event to calculate payroll. Must setup kafka
-    await worklogService.logWork({
-      staff: userId,
-      shift: shift.id,
-      startTime: schedule.timeFrom,
-      endTime: schedule.timeTo, // should be clocksOutAt but this is the requirement.
-      timezone: shift.timezone || process.env.TZ || "Australia/Sydney",
-    });
-
     return sendResponse({
       res,
       statusCode: 200,
       message: "Clock out successfully",
-      data: schedule!.toObject({ virtuals: true }),
+      data: true,
     });
   } catch (error) {
     return sendResponse({

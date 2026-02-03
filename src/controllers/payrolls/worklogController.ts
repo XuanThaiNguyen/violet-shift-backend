@@ -7,6 +7,7 @@ import { IQueryStaffWorklog, validateQueryStaffWorklog } from "../../validations
 import { WorkLogSegment } from "../../models/payrolls/workLogSegments";
 import { Types } from "mongoose";
 import { addMonths } from "date-fns";
+import WorkLog from "../../models/payrolls/workLogs";
 
 const controllerLogger = winstonLogger.child({
   controller: "worklogController",
@@ -50,7 +51,44 @@ export const getByStaff = async (req: Request, res: Response) => {
       data: worklogSegments,
     });
   } catch (error) {
-    logger.error(`Error fetching worklog segments for staff ${staffId} with query ${JSON.stringify(queryData)}`, error);
+    logger.error(
+      `Error fetching worklog segments for staff ${staffId} with query ${JSON.stringify(queryData)}`,
+      error,
+    );
+    return sendResponse({
+      res,
+      statusCode: 500,
+      code: WORKLOG_ERROR_CODE.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const shiftLogsByStaff = async (req: Request, res: Response) => {
+  const logger = controllerLogger.child({
+    function: "isLoggedByStaff",
+  });
+  const shiftId = req.params.shiftId;
+  const staffId = req.params.staffId;
+
+  try {
+    const logs = await WorkLog.find({
+      staff: staffId,
+      shift: shiftId,
+    });
+
+    return sendResponse({
+      res,
+      statusCode: 200,
+      status: API_STATUS.OK,
+      message: "Worklog segments fetched successfully",
+      data: logs,
+    });
+  } catch (error) {
+    logger.error(
+      `Error fetching worklog segments for staff ${staffId} with query shift ${shiftId}`,
+      error,
+    );
     return sendResponse({
       res,
       statusCode: 500,

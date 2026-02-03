@@ -19,6 +19,7 @@ import {
   validateQueryStaffs,
   validateUpdateStaff,
 } from "../validations/staffValidation";
+import { NotiService } from "../services/noti-service";
 // nanoid is ESM-only; use dynamic import in CommonJS environment
 
 const controllerLogger = winstonLogger.child({
@@ -435,7 +436,26 @@ export const inviteStaff = async (req: Request, res: Response) => {
     }
 
     const setUpUrl = `${process.env.APP_URL}/auth/accept-invitation?token=${token}`;
-    logger.info(`Set up URL: ${setUpUrl}`);
+    if (process.env.ENVIRONMENT !== "production") {
+      logger.info(`Set up URL: ${setUpUrl}`);
+    }
+
+    const instance = NotiService.getInstance();
+    instance.sendEmail({
+      header: {
+        to: invitationData.email,
+        // cc: "[EMAIL_ADDRESS]",
+        // bcc: "[EMAIL_ADDRESS]",
+        // from: "[EMAIL_ADDRESS]",
+        subject: "VioletShift - Reset password",
+      },
+      template: "RESET_PASSWORD_TEMPLATE",
+      data: {
+        name: invitationData.firstName,
+        reset_url: setUpUrl,
+        title: "Reset Your Password",
+      },
+    });
 
     return sendResponse({
       res,
