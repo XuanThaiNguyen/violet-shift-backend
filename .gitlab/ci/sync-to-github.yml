@@ -12,8 +12,8 @@ github_sync:
     - GH_REPO="https://${GH_USER}:${GH_TOKEN}@github.com/XuanThaiNguyen/violet-shift-backend.git"
 
     # Configure git
-    - git config --global user.email "nguyenxuanthai7@gmail.com"
-    - git config --global user.name "XuanThaiNguyen"
+    - git config --global user.email "tusocnau@gmail.com"
+    - git config --global user.name "ngtsnn"
 
     # Add GitHub as a remote and push all branches/tags
     - git remote add github $GH_REPO
