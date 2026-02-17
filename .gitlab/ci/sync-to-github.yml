@@ -7,7 +7,7 @@ github_sync:
   before_script:
     - apk add --no-cache git
   script:
-    - echo "bellooo"
+    - echo "which one"
     - echo $GH_USER
     - echo ${GH_USER}
     # Set up the target URL with authentication
