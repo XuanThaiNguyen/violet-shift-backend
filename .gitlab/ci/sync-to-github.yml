@@ -7,7 +7,8 @@ github_sync:
   before_script:
     - apk add --no-cache git
   script:
-    - echo ${GH_USER}
+    - echo "bellooo"
+    - echo $GH_USER
     # Set up the target URL with authentication
     # Format: https://<username>:<token>@github.com/<username>/<repo>.git
     - GH_REPO="https://${GH_USER}:${GH_TOKEN}@github.com/XuanThaiNguyen/violet-shift-backend.git"
