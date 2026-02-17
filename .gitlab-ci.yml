@@ -1,6 +1,6 @@
 # Main .gitlab-ci.yml
-include:
-  - local: "/.gitlab/ci/sync-to-github.yml"
+# include:
+#   - local: "/.gitlab/ci/sync-to-github.yml"
 
-stages:
-  - sync
+# stages:
+#   - sync
