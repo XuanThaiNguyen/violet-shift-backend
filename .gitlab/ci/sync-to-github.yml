@@ -7,8 +7,6 @@ github_sync:
   before_script:
     - apk add --no-cache git
   script:
-    - echo 'gh_user:' $GH_USER
-    - echo 'gh_token:' $GH_TOKEN
     # Set up the target URL with authentication
     # Format: https://<username>:<token>@github.com/<username>/<repo>.git
     - GH_REPO="https://${GH_USER}:${GH_TOKEN}@github.com/XuanThaiNguyen/violet-shift-backend.git"
@@ -19,7 +17,7 @@ github_sync:
 
     # Add GitHub as a remote and push all branches/tags
     - git remote add github $GH_REPO
-    - git push --prune github +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
+    - git push github --mirror
   only:
     - main
     - /^release\/.*$/
